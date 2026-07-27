@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: trustchain_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: trustchain5g
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - trustchain_net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trustchain_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=TrustChain-5G Platform API
+      - API_V1_STR=/api/v1
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=trustchain5g
+      - SECRET_KEY=enterprise-super-secret-key-sprint0
+      - ENVIRONMENT=production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - trustchain_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trustchain_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=/api/v1
+    depends_on:
+      - backend
+    networks:
+      - trustchain_net
+
+volumes:
+  mongodb_data:
+
+networks:
+  trustchain_net:
+    driver: bridge
