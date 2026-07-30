@@ -8,7 +8,7 @@ import random
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Dict
-from app.simulator.services.node_service import node_service
+from app.simulator.services.node_service import NodeService as node_service
 from app.simulator.models.node import SimulationNode, SimulationNodeStatus
 from app.communication.models.session import CommunicationSession, SessionStatus
 from app.communication.repositories.communication_repository import communication_repository

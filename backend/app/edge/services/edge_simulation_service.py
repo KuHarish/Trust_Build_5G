@@ -7,8 +7,8 @@ No attacks, Machine Learning, or Blockchain calculations are generated here.
 import asyncio
 import random
 import logging
-from typing import List, Tuple
-from app.simulator.services.node_service import node_service
+from typing import List, Tuple, Optional
+from app.simulator.services.node_service import NodeService as node_service
 from app.edge.services.edge_service import edge_service
 from app.edge.schemas.event import EventCreateRequest
 from app.edge.models.event import EventProtocol, EventStatus
@@ -53,7 +53,8 @@ class EdgeSimulationService:
 
     async def _generate_traffic_tick(self):
         # 1. Fetch active ONLINE nodes from Sprint 1.1 simulation registry
-        nodes, _ = await node_service.list_nodes(limit=100, status_filter="ONLINE")
+        all_nodes = await node_service.list_nodes(status="ONLINE")
+        nodes = all_nodes
         if len(nodes) < 2:
             # Need at least 2 online entities to avoid self-communication loops
             return

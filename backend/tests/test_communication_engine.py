@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.communication.simulation.traffic_generator import traffic_generator
 from app.simulator.models.node import NodeCreate
-from app.simulator.services.node_service import node_service
+from app.simulator.services.node_service import NodeService as node_service
 from app.edge.services.edge_service import edge_service
 
 client = TestClient(app)

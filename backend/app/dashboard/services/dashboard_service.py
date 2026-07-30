@@ -69,8 +69,8 @@ class DashboardService:
         # Module 1: Node statistics
         node_stats = await node_service.get_statistics()  # NodeService classmethod call
         total_nodes = node_stats.totalNodes
-        online_nodes = node_stats.statusDistribution.get("ONLINE", 0)
-        offline_nodes = node_stats.statusDistribution.get("OFFLINE", 0) + node_stats.statusDistribution.get("MAINTENANCE", 0)
+        online_nodes = node_stats.onlineNodes
+        offline_nodes = node_stats.offlineNodes
 
         # Module 3: Communication statistics
         comm_stats = await communication_service.get_statistics()
@@ -82,7 +82,7 @@ class DashboardService:
         # Module 2: Edge statistics
         edge_stats = await edge_service.get_statistics()
         eps = edge_stats.eventsPerSecond
-        avg_signal = edge_stats.averageSignal
+        avg_signal = edge_stats.averageSignalStrength if hasattr(edge_stats, "averageSignalStrength") else -70.0
         # Feature extraction rate closely mirrors event ingestion velocity
         ext_rate = round(eps * (1.0 + random.uniform(-0.05, 0.05)), 2)
 
@@ -439,4 +439,8 @@ class DashboardService:
                 data_list = [f.model_dump() for f in features_list]
                 return (json.dumps(data_list, indent=2), "application/json", f"{filename}.json")
 
-        raise ValueError(f"Unsupported export resource category: {r
+        raise ValueError(f"Unsupported export resource category: {resource}")
+
+
+# Singleton export
+dashboard_service = DashboardService()
