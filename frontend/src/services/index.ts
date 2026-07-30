@@ -4,3 +4,4 @@
 export { apiClient } from './apiClient';
 export * from './edgeService';
 export * from './communicationService';
+export * from './dashboardService';

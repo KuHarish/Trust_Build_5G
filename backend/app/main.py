@@ -21,6 +21,7 @@ from app.edge.routers import edge_router
 from app.edge.services import edge_simulation_service
 from app.communication.routers import communication_router
 from app.communication.simulation import communication_simulation_service
+from app.dashboard.routers import dashboard_router
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -95,6 +96,10 @@ def create_application() -> FastAPI:
     # Mount Sprint 1.3 Communication Engine Router under /api/communication
     app.include_router(communication_router, prefix="/api/communication")
     app.include_router(communication_router, prefix=f"{settings.API_V1_STR}/communication")
+
+    # Mount Sprint 1.4 Real-Time Network Monitoring & Integration Dashboard Router under /api/dashboard
+    app.include_router(dashboard_router, prefix="/api/dashboard")
+    app.include_router(dashboard_router, prefix=f"{settings.API_V1_STR}/dashboard")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():

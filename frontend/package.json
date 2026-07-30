@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.28.4",
+    "@xyflow/react": "^12.11.2",
     "axios": "^1.6.8",
     "chart.js": "^4.4.2",
     "clsx": "^2.1.0",
