@@ -76,3 +76,4 @@ export interface NavItem {
 }
 
 export * from './edge';
+export * from './communication';

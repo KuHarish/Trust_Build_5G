@@ -19,6 +19,8 @@ from app.simulator.routers.nodes import router as simulator_nodes_router
 from app.simulator.services.simulation_service import simulation_service
 from app.edge.routers import edge_router
 from app.edge.services import edge_simulation_service
+from app.communication.routers import communication_router
+from app.communication.simulation import communication_simulation_service
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -35,12 +37,14 @@ async def lifespan(app: FastAPI):
     # Start background 5G network & edge feature simulation daemons
     await simulation_service.start()
     await edge_simulation_service.start()
+    await communication_simulation_service.start()
     logger.info("TrustChain-5G Server ready to accept incoming 5G telemetry and dashboard connections.")
     
     yield
     
     # Graceful server shutdown
     logger.info("Initiating elegant shutdown of TrustChain-5G backend engine...")
+    await communication_simulation_service.stop()
     await edge_simulation_service.stop()
     await simulation_service.stop()
     await Database.close_mongo_connection()
@@ -87,6 +91,10 @@ def create_application() -> FastAPI:
     # Mount Sprint 1.2 Edge Server & Feature Extraction Router directly under /api/edge
     app.include_router(edge_router, prefix="/api")
     app.include_router(edge_router, prefix=f"{settings.API_V1_STR}")
+
+    # Mount Sprint 1.3 Communication Engine Router under /api/communication
+    app.include_router(communication_router, prefix="/api/communication")
+    app.include_router(communication_router, prefix=f"{settings.API_V1_STR}/communication")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():
