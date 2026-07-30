@@ -53,7 +53,7 @@ class CommunicationSimulationService:
 
     async def _execute_simulation_tick(self):
         # 1. Retrieve current network nodes from Sprint 1.1 registry
-        all_nodes, _ = await node_service.list_nodes(limit=100)
+        all_nodes = await node_service.list_nodes()
         online_nodes: Dict[str, SimulationNode] = {
             n.nodeName: n for n in all_nodes if n.status == SimulationNodeStatus.ONLINE
         }

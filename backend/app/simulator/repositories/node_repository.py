@@ -5,6 +5,7 @@ with decoupled fallback storage support when running unit tests without an activ
 """
 
 import logging
+import re
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorCollection
 from app.database.client import db
@@ -250,5 +251,4 @@ class NodeRepository:
                 await self.create(d)
 
 
-import re  # Added for regex escaping
 node_repository = NodeRepository()

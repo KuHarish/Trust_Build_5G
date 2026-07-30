@@ -29,7 +29,7 @@ class CommunicationEvent(BaseModel):
     destinationNodeId: str = Field(..., description="UUID or designation name of target recipient node")
     protocol: EventProtocol = Field(..., description="Transport or application protocol employed")
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(), description="ISO8601 UTC transmission timestamp")
-    packetSize: float = Field(..., description="Total transmitted packet size in bytes (64-1500)")
+    packetSize: float = Field(..., description="Total transmitted packet size in bytes (64-65535)")
     payloadSize: float = Field(..., description="Net data payload size in bytes")
     hopCount: int = Field(default=1, description="Number of network router routing hops traversed")
     ttl: int = Field(default=64, description="Time To Live remaining decrement count (32-128)")

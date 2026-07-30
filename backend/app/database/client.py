@@ -28,7 +28,7 @@ class Database:
                 settings.MONGODB_URL,
                 minPoolSize=settings.MONGODB_MIN_POOL_SIZE,
                 maxPoolSize=settings.MONGODB_MAX_POOL_SIZE,
-                serverSelectionTimeoutMS=5000,
+                serverSelectionTimeoutMS=2000,
             )
             cls.db = cls.client[settings.MONGODB_DB_NAME]
             # Verify connectivity with a quick admin command ping
@@ -36,8 +36,12 @@ class Database:
             logger.info("Successfully established enterprise connection pool to MongoDB.")
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            # In Sprint 0 architectural mode without live MongoDB running, we log gracefully
-            logger.warning("Continuing in Sprint 0 decoupled foundation mode without active Mongo DB instance.")
+            if cls.client is not None:
+                cls.client.close()
+            cls.client = None
+            cls.db = None
+            # In Sprint 0/1 architectural mode without live MongoDB running, we log gracefully and fall back instantly to memory
+            logger.warning("Continuing in decoupled foundation mode without active Mongo DB instance; automatically using in-memory repositories.")
 
     @classmethod
     async def close_mongo_connection(cls) -> None:

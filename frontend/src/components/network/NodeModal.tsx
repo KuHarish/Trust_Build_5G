@@ -16,6 +16,11 @@ interface NodeFormModalProps {
   errorMessage?: string | null;
 }
 
+interface NodeFormFields extends Omit<NodeCreateInput, 'nodeName' | 'nodeType'> {
+  simNodeName: string;
+  simNodeType: SimulationNodeType;
+}
+
 const IP_REGEX = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4})$/;
 const MAC_REGEX = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
 
@@ -35,58 +40,61 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
     control,
     reset,
     formState: { errors },
-  } = useForm<NodeCreateInput>({
-    defaultValues: initialData || {
-      nodeName: '',
-      nodeType: 'Gateway',
-      deviceCategory: '5G gNodeB Base Station',
-      status: 'ONLINE',
-      ipAddress: '10.50.1.10',
-      macAddress: '00:1B:44:11:3A:B7',
-      latitude: 35.6895,
-      longitude: 139.6917,
-      signalStrength: -60.0,
-      bandwidth: 1000.0,
-      latency: 2.0,
-      batteryLevel: 100.0,
-      firmwareVersion: 'v1.0.0-5g',
-      connections: 10,
+  } = useForm<NodeFormFields>({
+    defaultValues: {
+      ...(initialData || {}),
+      simNodeName: initialData?.nodeName || '',
+      simNodeType: initialData?.nodeType || 'Gateway',
+      deviceCategory: initialData?.deviceCategory || '5G gNodeB Base Station',
+      status: initialData?.status || 'ONLINE',
+      ipAddress: initialData?.ipAddress || '10.50.1.10',
+      macAddress: initialData?.macAddress || '00:1B:44:11:3A:B7',
+      latitude: initialData?.latitude ?? 35.6895,
+      longitude: initialData?.longitude ?? 139.6917,
+      signalStrength: initialData?.signalStrength ?? -60.0,
+      bandwidth: initialData?.bandwidth ?? 1000.0,
+      latency: initialData?.latency ?? 2.0,
+      batteryLevel: initialData?.batteryLevel ?? 100.0,
+      firmwareVersion: initialData?.firmwareVersion || 'v1.0.0-5g',
+      connections: initialData?.connections ?? 10,
     },
   });
 
   React.useEffect(() => {
     if (isOpen) {
-      reset(
-        initialData || {
-          nodeName: '',
-          nodeType: 'Gateway',
-          deviceCategory: '5G gNodeB Base Station',
-          status: 'ONLINE',
-          ipAddress: '10.50.1.10',
-          macAddress: '00:1B:44:11:3A:B7',
-          latitude: 35.6895,
-          longitude: 139.6917,
-          signalStrength: -60.0,
-          bandwidth: 1000.0,
-          latency: 2.0,
-          batteryLevel: 100.0,
-          firmwareVersion: 'v1.0.0-5g',
-          connections: 10,
-        }
-      );
+      reset({
+        ...(initialData || {}),
+        simNodeName: initialData?.nodeName || '',
+        simNodeType: initialData?.nodeType || 'Gateway',
+        deviceCategory: initialData?.deviceCategory || '5G gNodeB Base Station',
+        status: initialData?.status || 'ONLINE',
+        ipAddress: initialData?.ipAddress || '10.50.1.10',
+        macAddress: initialData?.macAddress || '00:1B:44:11:3A:B7',
+        latitude: initialData?.latitude ?? 35.6895,
+        longitude: initialData?.longitude ?? 139.6917,
+        signalStrength: initialData?.signalStrength ?? -60.0,
+        bandwidth: initialData?.bandwidth ?? 1000.0,
+        latency: initialData?.latency ?? 2.0,
+        batteryLevel: initialData?.batteryLevel ?? 100.0,
+        firmwareVersion: initialData?.firmwareVersion || 'v1.0.0-5g',
+        connections: initialData?.connections ?? 10,
+      });
     }
   }, [isOpen, initialData, reset]);
 
-  const onFormSubmit = async (data: NodeCreateInput) => {
+  const onFormSubmit = async (data: NodeFormFields) => {
+    const { simNodeName, simNodeType, ...rest } = data;
     await onSubmit({
-      ...data,
-      latitude: Number(data.latitude),
-      longitude: Number(data.longitude),
-      signalStrength: Number(data.signalStrength),
-      bandwidth: Number(data.bandwidth),
-      latency: Number(data.latency),
-      batteryLevel: Number(data.batteryLevel),
-      connections: Number(data.connections),
+      ...rest,
+      nodeName: simNodeName,
+      nodeType: simNodeType,
+      latitude: Number(data.latitude ?? 0),
+      longitude: Number(data.longitude ?? 0),
+      signalStrength: Number(data.signalStrength ?? -65.0),
+      bandwidth: Number(data.bandwidth ?? 1000.0),
+      latency: Number(data.latency ?? 5.0),
+      batteryLevel: Number(data.batteryLevel ?? 100.0),
+      connections: Number(data.connections ?? 0),
     });
   };
 
@@ -98,7 +106,14 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
       subtitle={isEdit ? 'Modify active parameters for this simulated network entity.' : 'Provide validated hardware identifiers and geographic positioning.'}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 text-left">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleSubmit(onFormSubmit)(e);
+        }}
+        className="space-y-4 text-left"
+      >
         {errorMessage && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -111,9 +126,9 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
           <div>
             <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Node Designation Name *</label>
             <Input
-              {...register('nodeName', { required: 'Node Name is required', minLength: { value: 2, message: 'Minimum 2 characters' } })}
+              {...register('simNodeName', { required: 'Node Name is required', minLength: { value: 2, message: 'Minimum 2 characters' } })}
               placeholder="e.g. GNB-Sector-West"
-              error={errors.nodeName?.message}
+              error={errors.simNodeName?.message}
             />
           </div>
 
@@ -121,7 +136,7 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
           <div>
             <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Entity Classification Type *</label>
             <Controller
-              name="nodeType"
+              name="simNodeType"
               control={control}
               render={({ field }: { field: { value: SimulationNodeType; onChange: (val: SimulationNodeType) => void } }) => (
                 <Select

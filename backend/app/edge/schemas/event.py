@@ -9,7 +9,7 @@ class EventCreateRequest(BaseModel):
     sourceNodeId: str = Field(..., min_length=1, description="Source node ID or name")
     destinationNodeId: str = Field(..., min_length=1, description="Destination node ID or name")
     protocol: EventProtocol = Field(default=EventProtocol.TCP)
-    packetSize: float = Field(default=512.0, ge=64.0, le=1500.0)
+    packetSize: float = Field(default=512.0, ge=64.0, le=65535.0)
     payloadSize: Optional[float] = Field(default=None)
     hopCount: int = Field(default=1, ge=1, le=32)
     ttl: int = Field(default=64, ge=32, le=128)
