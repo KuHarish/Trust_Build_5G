@@ -13,3 +13,4 @@ export { Blockchain } from './Blockchain';
 export { SecurityController } from './SecurityController';
 export { Analytics } from './Analytics';
 export { Settings } from './Settings';
+export { EdgeServer } from './EdgeServer';

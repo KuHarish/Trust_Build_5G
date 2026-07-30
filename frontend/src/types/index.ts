@@ -74,3 +74,5 @@ export interface NavItem {
   badge?: string | number;
   badgeColor?: 'primary' | 'danger' | 'warning' | 'success' | 'accent';
 }
+
+export * from './edge';

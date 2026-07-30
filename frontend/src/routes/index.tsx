@@ -17,6 +17,7 @@ import {
   SecurityController,
   Analytics,
   Settings,
+  EdgeServer,
 } from '@/pages';
 
 export const AppRoutes: React.FC = () => {
@@ -39,6 +40,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/network" element={<Network />} />
         <Route path="/network/nodes" element={<Nodes />} />
         <Route path="/nodes" element={<Nodes />} />
+        <Route path="/edge" element={<EdgeServer />} />
         <Route path="/traffic" element={<Traffic />} />
         <Route path="/attacks" element={<Attacks />} />
         <Route path="/trust" element={<TrustEngine />} />
