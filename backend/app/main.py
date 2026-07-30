@@ -15,6 +15,8 @@ from app.database.client import Database
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.error_handling import GlobalErrorHandlingMiddleware, setup_exception_handlers
 from app.api.v1 import api_router
+from app.simulator.routers.nodes import router as simulator_nodes_router
+from app.simulator.services.simulation_service import simulation_service
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -28,12 +30,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"Initializing {settings.PROJECT_NAME} ({settings.VERSION}) under [{settings.ENVIRONMENT}] mode...")
     # Attempt DB connection
     await Database.connect_to_mongo()
+    # Start background 5G network telemetry simulation daemon
+    await simulation_service.start()
     logger.info("TrustChain-5G Server ready to accept incoming 5G telemetry and dashboard connections.")
     
     yield
     
     # Graceful server shutdown
     logger.info("Initiating elegant shutdown of TrustChain-5G backend engine...")
+    await simulation_service.stop()
     await Database.close_mongo_connection()
     logger.info("Shutdown lifecycle complete.")
 
@@ -69,6 +74,11 @@ def create_application() -> FastAPI:
 
     # Mount V1 API Master Router
     app.include_router(api_router, prefix=settings.API_V1_STR)
+    
+    # Mount Sprint 1.1 Network Node Management Simulation Router directly under /api/nodes as specified
+    app.include_router(simulator_nodes_router, prefix="/api/nodes")
+    # Also include under v1 prefix for unified frontend client configurations
+    app.include_router(simulator_nodes_router, prefix=f"{settings.API_V1_STR}/nodes-sim")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():
