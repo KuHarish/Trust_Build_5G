@@ -281,8 +281,7 @@ class DashboardService:
         now_iso = datetime.now(timezone.utc).isoformat()
         
         # Pull latest communication events from Edge Server to correlate parameters
-        events_res = await edge_service.list_events()
-        events_list = events_res.get("data", [])
+        events_list, _ = await edge_service.list_events()
 
         for i, ev in enumerate(events_list[:10]):
             items.append(ExtractedFeatureItem(
@@ -294,7 +293,7 @@ class DashboardService:
                 signalStrength=ev.signalStrength,
                 communicationCount=random.randint(1, 45),
                 transmissionTime=round(ev.latency * 0.8, 2),
-                extractionTime=ev.receivedAt.isoformat() if hasattr(ev.receivedAt, "isoformat") else str(ev.receivedAt),
+                extractionTime=ev.timestamp.isoformat() if hasattr(ev.timestamp, "isoformat") else str(ev.timestamp),
                 sourceNode=ev.sourceNodeId,
                 destinationNode=ev.destinationNodeId,
             ))
@@ -423,8 +422,7 @@ class DashboardService:
                 return (json.dumps(data_list, indent=2), "application/json", f"{filename}.json")
 
         elif resource == "features":
-            features_res = await edge_service.list_features()
-            features_list = features_res.get("data", [])
+            features_list = await edge_service.list_features()
             filename = f"trustchain_extracted_features_{now_str}"
             if export_format == "csv":
                 output = io.StringIO()

@@ -11,7 +11,7 @@ import { PacketsTable } from '@/components/network/PacketsTable';
 import { CommunicationVisualizations } from '@/components/network/CommunicationVisualizations';
 import { SimulationNode, NodeCreateInput, SimulationNodeStatus } from '@/types/node';
 import { Button } from '@/components/common/Button';
-import { Radio, Plus, Activity, ShieldCheck, Cpu, Share2, Zap, Layers, Server } from 'lucide-react';
+import { Radio, Plus, Activity, Share2, Zap, Server } from 'lucide-react';
 
 type TabView = 'TOPOLOGY' | 'SESSIONS' | 'PACKETS' | 'REGISTRY';
 

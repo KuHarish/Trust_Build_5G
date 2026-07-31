@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Packet } from '@/types/communication';
 import { Card, LoadingSpinner, Button } from '@/components/common';
-import { RefreshCw, ArrowUpRight, Check, AlertCircle } from 'lucide-react';
+import { RefreshCw, Check, AlertCircle } from 'lucide-react';
 
 interface PacketsTableProps {
   packets: Packet[];

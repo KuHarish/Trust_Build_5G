@@ -13,27 +13,27 @@ import {
  */
 export const dashboardApi = {
   fetchOverview: async (): Promise<{ success: boolean; data: SystemOverview }> => {
-    const response = await apiClient.get('/api/dashboard/overview');
+    const response = await apiClient.get('/dashboard/overview');
     return response.data;
   },
 
   fetchHealth: async (): Promise<{ success: boolean; data: NetworkHealthStatus }> => {
-    const response = await apiClient.get('/api/dashboard/health');
+    const response = await apiClient.get('/dashboard/health');
     return response.data;
   },
 
   fetchLiveFeed: async (): Promise<DashboardLiveResponse> => {
-    const response = await apiClient.get('/api/dashboard/live');
+    const response = await apiClient.get('/dashboard/live');
     return response.data;
   },
 
   fetchStatisticsTrend: async (): Promise<DashboardStatisticsResponse> => {
-    const response = await apiClient.get('/api/dashboard/statistics');
+    const response = await apiClient.get('/dashboard/statistics');
     return response.data;
   },
 
   sendSimulationCommand: async (cmd: SimulationControlRequest): Promise<SimulationStatus> => {
-    const response = await apiClient.post('/api/dashboard/simulation/control', cmd);
+    const response = await apiClient.post('/dashboard/simulation/control', cmd);
     return response.data;
   },
 

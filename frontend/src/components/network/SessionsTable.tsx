@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CommunicationSession } from '@/types/communication';
 import { Card, LoadingSpinner, Button } from '@/components/common';
-import { RefreshCw, Radio, Activity, CheckCircle2, Clock } from 'lucide-react';
+import { RefreshCw, Activity, Clock } from 'lucide-react';
 
 interface SessionsTableProps {
   sessions: CommunicationSession[];
