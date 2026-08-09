@@ -10,6 +10,7 @@ import { SessionsTable } from '@/components/network/SessionsTable';
 import { PacketsTable } from '@/components/network/PacketsTable';
 import { CommunicationVisualizations } from '@/components/network/CommunicationVisualizations';
 import { SimulationNode, NodeCreateInput, SimulationNodeStatus } from '@/types/node';
+import { useLiveDashboardStream } from '@/hooks/useDashboardHooks';
 import { Button } from '@/components/common/Button';
 import { Radio, Plus, Activity, Share2, Zap, Server } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export const Network: React.FC = () => {
 
   // Module 3 Communication Engine Hooks
   const { data: liveFeed, isLoading: liveLoading, refetch: refetchLive } = useLiveTrafficFeed();
+  const { liveData: dashboardFeed } = useLiveDashboardStream();
   const { data: sessionsRes, isLoading: sessionsLoading, refetch: refetchSessions } = useCommunicationSessions({ limit: 60 });
   const { data: packetsRes, isLoading: packetsLoading, refetch: refetchPackets } = useCommunicationPackets({ limit: 60 });
 
@@ -43,6 +45,7 @@ export const Network: React.FC = () => {
   const activeSessions = liveFeed?.activeSessions || [];
   const sessionsList = sessionsRes?.data || [];
   const packetsList = packetsRes?.data || [];
+  const trustProfiles = dashboardFeed?.trustProfiles || [];
 
   // Handlers for Node Registry
   const handleCreateOrUpdate = async (data: NodeCreateInput) => {
@@ -193,6 +196,7 @@ export const Network: React.FC = () => {
             <NetworkTopologyView
               nodes={nodesList}
               activeSessions={activeSessions}
+              trustProfiles={trustProfiles}
               isLoading={nodesLoading || liveLoading}
               onRefresh={() => {
                 refetchNodes();

@@ -11,6 +11,7 @@ interface TopologyViewProps {
   activeSessions: CommunicationSession[];
   isLoading: boolean;
   onRefresh?: () => void;
+  trustProfiles?: any[];
 }
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ export const NetworkTopologyView: React.FC<TopologyViewProps> = ({
   activeSessions,
   isLoading,
   onRefresh,
+  trustProfiles = [],
 }) => {
   // Synthesize React Flow nodes from Sprint 1.1 simulation registry
   const flowNodes: Node[] = useMemo(() => {
@@ -40,6 +42,8 @@ export const NetworkTopologyView: React.FC<TopologyViewProps> = ({
       const row = Math.floor(index / cols);
       const isOnline = node.status === 'ONLINE';
 
+      const profile = trustProfiles.find(p => p.nodeId === node.nodeName);
+
       // Style determination based on node category
       let borderColor = '#6366f1';
       if (node.nodeType === 'Gateway') borderColor = '#f59e0b';
@@ -47,10 +51,20 @@ export const NetworkTopologyView: React.FC<TopologyViewProps> = ({
       else if (node.nodeType === 'Medical Device') borderColor = '#ef4444';
       else if (node.nodeType === 'Autonomous Vehicle') borderColor = '#06b6d4';
 
+      if (profile) {
+        if (profile.trustLevel === 'TRUSTED') borderColor = '#10b981';
+        else if (profile.trustLevel === 'SUSPICIOUS' || profile.trustLevel === 'WARNING') borderColor = '#f59e0b';
+        else if (profile.trustLevel === 'MALICIOUS' || profile.trustLevel === 'CRITICAL') borderColor = '#ef4444';
+      }
+
+      const scoreDisplay = profile && profile.currentTrustScore !== null && profile.currentTrustScore !== undefined 
+        ? `\nTrust: ${(profile.currentTrustScore * 100).toFixed(0)}%` 
+        : '';
+
       return {
         id: node.nodeName,
         position: { x: col * hSpacing + 60, y: row * vSpacing + 60 },
-        data: { label: `${node.nodeName}\n(${node.nodeType})` },
+        data: { label: `${node.nodeName}\n(${node.nodeType})${scoreDisplay}` },
         style: {
           background: '#0f172a',
           border: `2px solid ${borderColor}`,
@@ -67,7 +81,7 @@ export const NetworkTopologyView: React.FC<TopologyViewProps> = ({
         },
       };
     });
-  }, [nodes]);
+  }, [nodes, trustProfiles]);
 
   // Synthesize animated connecting edges from Module 3 active sessions
   const flowEdges: Edge[] = useMemo(() => {

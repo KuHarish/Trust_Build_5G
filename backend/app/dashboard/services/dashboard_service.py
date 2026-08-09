@@ -23,12 +23,15 @@ from app.dashboard.schemas.dashboard import (
     DashboardLiveResponse,
     ChartSeriesData,
     DashboardStatisticsResponse,
+    TrustEvent
 )
 from app.simulator.services.node_service import NodeService as node_service
 from app.simulator.models.node import SimulationNodeStatus
 from app.edge.services.edge_service import edge_service
 from app.communication.services.communication_service import communication_service
 from app.communication.repositories.communication_repository import communication_repository
+from app.trust.services.trust_service import trust_service
+from app.trust.repositories.trust_repository import trust_evaluation_history_repo
 
 # Background simulation daemons
 from app.simulator.services.simulation_service import simulation_service as node_sim_daemon
@@ -189,6 +192,13 @@ class DashboardService:
         # Compile recent feature extraction data from Module 2
         recent_features = await self._compile_feature_stream()
 
+        # Retrieve global trust profiles
+        trust_profiles_raw = await trust_service.get_all_profiles()
+        trust_profiles = [p.model_dump(by_alias=True) for p in trust_profiles_raw]
+
+        # Compile recent trust events
+        recent_trust_events = await self._compile_trust_stream()
+
         # Determine daemon simulation status
         sim_status = SimulationStatus(
             running=(node_sim_daemon._running or comm_sim_daemon.running) and not self._sim_paused,
@@ -205,6 +215,8 @@ class DashboardService:
             health=health,
             recentEvents=recent_events,
             recentFeatures=recent_features,
+            recentTrustEvents=recent_trust_events,
+            trustProfiles=trust_profiles,
             activeSessionsCount=overview.activeSessions,
             simulationStatus=sim_status,
         )
@@ -298,6 +310,24 @@ class DashboardService:
                 destinationNode=ev.destinationNodeId,
             ))
         return items
+
+    async def _compile_trust_stream(self) -> List[TrustEvent]:
+        """Fetch latest trust evaluation events from Module 3 to power Trust Alerts on Dashboard."""
+        history = await trust_evaluation_history_repo.get_recent_global_history(limit=15)
+        events: List[TrustEvent] = []
+        for h in history:
+            events.append(TrustEvent(
+                eventId=h.evaluationId,
+                eventType="TRUST_UPDATED",
+                nodeId=h.nodeId,
+                previousTrust=h.previousTrustScore,
+                currentTrust=h.trustScore,
+                trustDelta=h.trustDelta,
+                trustLevel=h.trustLevel,
+                timestamp=h.timestamp.isoformat() if hasattr(h.timestamp, "isoformat") else str(h.timestamp),
+                reason=h.reason
+            ))
+        return events
 
     async def get_statistics_trend(self) -> DashboardStatisticsResponse:
         """Return time-series trend arrays and protocol distributions for real-time chart rendering."""

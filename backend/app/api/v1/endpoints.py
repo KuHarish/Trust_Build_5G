@@ -68,21 +68,6 @@ async def list_attack_logs(severity: Optional[str] = None, user=Depends(get_curr
     return PaginatedResponse(success=True, total_count=len(mock_attacks), data=mock_attacks)
 
 
-# ==============================================================================
-# 4. ADAPTIVE TRUST ENGINE API ROUTER
-# ==============================================================================
-trust_router = APIRouter(prefix="/trust", tags=["Adaptive Trust Engine"])
-
-@trust_router.get("/scores", response_model=PaginatedResponse, summary="Fetch Node Trust Scores")
-async def get_trust_scores(user=Depends(get_current_user_token)):
-    """Retrieve evaluated trust quotients calculated via Bayesian reputation algorithms."""
-    return PaginatedResponse(success=True, total_count=0, data=[], message="Adaptive Trust Engine evaluation pipeline ready.")
-
-@trust_router.get("/history/{node_id}", response_model=APIResponse, summary="Fetch Node Trust Ledger History")
-async def get_trust_history(node_id: str, user=Depends(get_current_user_token)):
-    """Query historical reputation changes and cryptographic blockchain anchor proofs for a specific node."""
-    return APIResponse(success=True, message=f"Trust ledger query complete for node '{node_id}'.", data=[])
-
 
 # ==============================================================================
 # 5. BLOCKCHAIN LEDGER API ROUTER

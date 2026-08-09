@@ -40,6 +40,17 @@ class ActivityEvent(BaseModel):
     protocol: Optional[str] = None
     description: str = Field(..., description="Human-readable operational ticker message")
 
+class TrustEvent(BaseModel):
+    eventId: str
+    eventType: str = Field("TRUST_UPDATED", description="Event category: TRUST_UPDATED")
+    nodeId: str
+    previousTrust: Optional[float] = None
+    currentTrust: float
+    trustDelta: Optional[float] = None
+    trustLevel: str
+    timestamp: str
+    reason: Optional[str] = None
+
 class ExtractedFeatureItem(BaseModel):
     featureId: str = Field(..., description="Identifier for extracted feature block")
     protocol: str
@@ -82,6 +93,8 @@ class DashboardLiveResponse(BaseModel):
     health: NetworkHealthStatus
     recentEvents: List[ActivityEvent]
     recentFeatures: List[ExtractedFeatureItem]
+    recentTrustEvents: List[TrustEvent] = Field(default_factory=list)
+    trustProfiles: List[Any] = Field(default_factory=list)
     activeSessionsCount: int
     simulationStatus: SimulationStatus
 

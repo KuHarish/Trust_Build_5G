@@ -22,6 +22,8 @@ from app.edge.services import edge_simulation_service
 from app.communication.routers import communication_router
 from app.communication.simulation import communication_simulation_service
 from app.dashboard.routers import dashboard_router
+from app.trust.routers.trust_router import router as trust_router
+from app.trust.services.behavior_evaluation_service import behavior_evaluation_service
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -39,12 +41,14 @@ async def lifespan(app: FastAPI):
     await simulation_service.start()
     await edge_simulation_service.start()
     await communication_simulation_service.start()
+    await behavior_evaluation_service.start()
     logger.info("TrustChain-5G Server ready to accept incoming 5G telemetry and dashboard connections.")
     
     yield
     
     # Graceful server shutdown
     logger.info("Initiating elegant shutdown of TrustChain-5G backend engine...")
+    await behavior_evaluation_service.stop()
     await communication_simulation_service.stop()
     await edge_simulation_service.stop()
     await simulation_service.stop()
@@ -100,6 +104,10 @@ def create_application() -> FastAPI:
     # Mount Sprint 1.4 Real-Time Network Monitoring & Integration Dashboard Router under /api/dashboard
     app.include_router(dashboard_router, prefix="/api/dashboard")
     app.include_router(dashboard_router, prefix=f"{settings.API_V1_STR}/dashboard")
+
+    # Mount Sprint 3.1 Adaptive Trust Evaluation Engine Router
+    app.include_router(trust_router, prefix="/api/trust")
+    app.include_router(trust_router, prefix=f"{settings.API_V1_STR}/trust")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():

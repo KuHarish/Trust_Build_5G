@@ -27,8 +27,17 @@ export const attacksApi = {
 };
 
 export const trustApi = {
-  getScores: () => apiClient.get('/trust/scores'),
+  getProfiles: () => apiClient.get('/trust/profiles'),
+  getProfile: (nodeId: string) => apiClient.get(`/trust/profiles/${nodeId}`),
+  getCurrentProfile: (nodeId: string) => apiClient.get(`/trust/${nodeId}/current`),
+  getBehavior: (nodeId: string) => apiClient.get(`/trust/behavior/${nodeId}`),
   getHistory: (nodeId: string) => apiClient.get(`/trust/history/${nodeId}`),
+  getCompliance: (nodeId: string) => apiClient.get(`/trust/compliance/${nodeId}`),
+  getStatistics: () => apiClient.get('/trust/statistics'),
+  getConfiguration: () => apiClient.get('/trust/configuration'),
+  updateConfiguration: (data: Record<string, unknown>) => apiClient.put('/trust/configuration', data),
+  evaluateNode: (nodeId: string) => apiClient.post(`/trust/${nodeId}/evaluate`),
+  evaluateAll: () => apiClient.post('/trust/evaluate-all'),
 };
 
 export const blockchainApi = {

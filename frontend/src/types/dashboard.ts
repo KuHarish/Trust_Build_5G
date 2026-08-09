@@ -74,12 +74,26 @@ export interface SimulationControlRequest {
   communicationInterval?: number;
 }
 
+export interface TrustEvent {
+  eventId: string;
+  eventType: string;
+  nodeId: string;
+  previousTrust: number | null;
+  currentTrust: number;
+  trustDelta: number | null;
+  trustLevel: string;
+  timestamp: string;
+  reason: string | null;
+}
+
 export interface DashboardLiveResponse {
   success: boolean;
   overview: SystemOverview;
   health: NetworkHealthStatus;
   recentEvents: ActivityEvent[];
   recentFeatures: ExtractedFeatureItem[];
+  recentTrustEvents: TrustEvent[];
+  trustProfiles: any[]; // Using any for now to avoid circular import, or you can import TrustProfile
   activeSessionsCount: number;
   simulationStatus: SimulationStatus;
 }
