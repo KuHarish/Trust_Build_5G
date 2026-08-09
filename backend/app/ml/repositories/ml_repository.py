@@ -2,6 +2,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from app.database.client import Database
 from app.ml.models.dataset import Dataset, FeatureRegistry
+from app.ml.models.ml_model import MLModel, TrainingJob
 
 logger = logging.getLogger("trustchain.ml.repository")
 
@@ -9,6 +10,8 @@ class MLRepository:
     def __init__(self):
         self._datasets_memory: Dict[str, dict] = {}
         self._features_memory: Dict[str, dict] = {}
+        self._models_memory: Dict[str, dict] = {}
+        self._jobs_memory: Dict[str, dict] = {}
 
     def _get_datasets_collection(self):
         db = Database.get_db()
@@ -17,6 +20,14 @@ class MLRepository:
     def _get_features_collection(self):
         db = Database.get_db()
         return db["ml_features"] if db is not None else None
+
+    def _get_models_collection(self):
+        db = Database.get_db()
+        return db["ml_models"] if db is not None else None
+
+    def _get_jobs_collection(self):
+        db = Database.get_db()
+        return db["ml_training_jobs"] if db is not None else None
 
     async def register_dataset(self, dataset: Dataset) -> Dataset:
         data = dataset.model_dump()
@@ -99,5 +110,96 @@ class MLRepository:
                 logger.warning(f"Mongo list_features error ({e}).")
                 
         return [FeatureRegistry(**doc) for doc in self._features_memory.values()]
+
+    # ML Models
+    async def save_model(self, model: MLModel) -> MLModel:
+        data = model.model_dump()
+        coll = self._get_models_collection()
+        if coll is not None:
+            try:
+                await coll.update_one({"modelId": model.modelId}, {"$set": data}, upsert=True)
+            except Exception as e:
+                logger.warning(f"Mongo save_model error ({e}).")
+                self._models_memory[model.modelId] = data
+        else:
+            self._models_memory[model.modelId] = data
+        return model
+
+    async def get_model(self, model_id: str) -> Optional[MLModel]:
+        coll = self._get_models_collection()
+        if coll is not None:
+            try:
+                doc = await coll.find_one({"modelId": model_id}, {"_id": 0})
+                if doc:
+                    return MLModel(**doc)
+            except Exception as e:
+                logger.warning(f"Mongo get_model error ({e}).")
+        
+        doc = self._models_memory.get(model_id)
+        return MLModel(**doc) if doc else None
+
+    async def list_models(self) -> List[MLModel]:
+        coll = self._get_models_collection()
+        if coll is not None:
+            try:
+                cursor = coll.find({}, {"_id": 0}).sort("createdAt", -1)
+                docs = await cursor.to_list(length=100)
+                return [MLModel(**doc) for doc in docs]
+            except Exception as e:
+                logger.warning(f"Mongo list_models error ({e}).")
+        return [MLModel(**doc) for doc in self._models_memory.values()]
+
+    async def get_active_model(self) -> Optional[MLModel]:
+        coll = self._get_models_collection()
+        if coll is not None:
+            try:
+                doc = await coll.find_one({"isActive": True}, {"_id": 0})
+                if doc:
+                    return MLModel(**doc)
+            except Exception as e:
+                logger.warning(f"Mongo get_active_model error ({e}).")
+        
+        for doc in self._models_memory.values():
+            if doc.get("isActive") is True:
+                return MLModel(**doc)
+        return None
+
+    # Training Jobs
+    async def save_job(self, job: TrainingJob) -> TrainingJob:
+        data = job.model_dump()
+        coll = self._get_jobs_collection()
+        if coll is not None:
+            try:
+                await coll.update_one({"jobId": job.jobId}, {"$set": data}, upsert=True)
+            except Exception as e:
+                logger.warning(f"Mongo save_job error ({e}).")
+                self._jobs_memory[job.jobId] = data
+        else:
+            self._jobs_memory[job.jobId] = data
+        return job
+
+    async def get_job(self, job_id: str) -> Optional[TrainingJob]:
+        coll = self._get_jobs_collection()
+        if coll is not None:
+            try:
+                doc = await coll.find_one({"jobId": job_id}, {"_id": 0})
+                if doc:
+                    return TrainingJob(**doc)
+            except Exception as e:
+                logger.warning(f"Mongo get_job error ({e}).")
+        
+        doc = self._jobs_memory.get(job_id)
+        return TrainingJob(**doc) if doc else None
+
+    async def list_jobs(self) -> List[TrainingJob]:
+        coll = self._get_jobs_collection()
+        if coll is not None:
+            try:
+                cursor = coll.find({}, {"_id": 0}).sort("startedAt", -1)
+                docs = await cursor.to_list(length=100)
+                return [TrainingJob(**doc) for doc in docs]
+            except Exception as e:
+                logger.warning(f"Mongo list_jobs error ({e}).")
+        return [TrainingJob(**doc) for doc in self._jobs_memory.values()]
 
 ml_repository = MLRepository()

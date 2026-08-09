@@ -25,6 +25,7 @@ from app.dashboard.routers import dashboard_router
 from app.trust.routers.trust_router import router as trust_router
 from app.trust.services.behavior_evaluation_service import behavior_evaluation_service
 from app.ml.routers.ml import router as ml_router
+from app.ml.routers.models import router as models_router
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -113,6 +114,10 @@ def create_application() -> FastAPI:
     # Mount Sprint 4.1 ML Pipeline Router
     app.include_router(ml_router, prefix="/api")
     app.include_router(ml_router, prefix=f"{settings.API_V1_STR}")
+    
+    # Mount Sprint 4.2 ML Models Router
+    app.include_router(models_router, prefix="/api/ml")
+    app.include_router(models_router, prefix=f"{settings.API_V1_STR}/ml")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():
