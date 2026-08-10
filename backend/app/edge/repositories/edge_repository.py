@@ -63,7 +63,7 @@ class EdgeRepository:
                         {"destinationNodeId": {"$regex": search, "$options": "i"}},
                         {"eventId": {"$regex": search, "$options": "i"}},
                     ]
-                total = await coll.count_documents(query)
+                total = await coll.estimated_document_count() if not query else await coll.count_documents(query)
                 cursor = coll.find(query, {"_id": 0}).sort("timestamp", -1).skip(offset).limit(limit)
                 docs = await cursor.to_list(length=limit)
                 return [CommunicationEvent(**doc) for doc in docs], total
@@ -125,7 +125,7 @@ class EdgeRepository:
         coll = self._get_events_collection()
         if coll is not None:
             try:
-                return await coll.count_documents({})
+                return await coll.estimated_document_count()
             except Exception:
                 pass
         return len(self._events_memory_store)
@@ -175,7 +175,7 @@ class EdgeRepository:
         coll = self._get_features_collection()
         if coll is not None:
             try:
-                return await coll.count_documents({})
+                return await coll.estimated_document_count()
             except Exception:
                 pass
         return len(self._features_memory_store)

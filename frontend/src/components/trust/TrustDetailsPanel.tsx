@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { TrustScore } from '@/components/trust/TrustScore';
 import {
@@ -9,7 +8,6 @@ import {
   Server,
   Clock,
   Fingerprint,
-  Radio,
   MapPin
 } from 'lucide-react';
 import { cn } from '@/utils';

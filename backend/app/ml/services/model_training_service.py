@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 import asyncio
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from sklearn.ensemble import RandomForestClassifier
 
 from app.ml.models.ml_model import MLModel, TrainingJob

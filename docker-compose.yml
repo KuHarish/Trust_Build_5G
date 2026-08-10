@@ -31,7 +31,10 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017
       - MONGODB_DB_NAME=trustchain5g
       - SECRET_KEY=enterprise-super-secret-key-sprint0
-      - ENVIRONMENT=production
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       mongodb:
         condition: service_healthy

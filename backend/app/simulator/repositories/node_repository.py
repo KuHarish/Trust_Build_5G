@@ -139,7 +139,7 @@ class NodeRepository:
         collection = self._get_collection()
         if collection is not None:
             try:
-                return await collection.count_documents({})
+                return await collection.estimated_document_count()
             except Exception as e:
                 logger.warning(f"MongoDB count failed ({str(e)}), using memory store count.")
         return len(self._memory_store)

@@ -13,7 +13,6 @@ interface TrustScoreProps {
 export const TrustScore: React.FC<TrustScoreProps> = ({ score, level, showIcon = true, size = 'md', className }) => {
   const isTrusted = level === 'TRUSTED';
   const isSuspicious = level === 'SUSPICIOUS' || level === 'WARNING';
-  const isMalicious = level === 'MALICIOUS' || level === 'CRITICAL';
 
   const colorClass = isTrusted
     ? 'text-emerald-400'
