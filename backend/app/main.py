@@ -26,6 +26,8 @@ from app.trust.routers.trust_router import router as trust_router
 from app.trust.services.behavior_evaluation_service import behavior_evaluation_service
 from app.ml.routers.ml import router as ml_router
 from app.ml.routers.models import router as models_router
+from app.ml.routers.experiments import router as experiments_router
+from app.federated.routers.federated import router as federated_router
 
 # Initialize structured logging
 logger = logging.getLogger("trustchain.main")
@@ -44,12 +46,15 @@ async def lifespan(app: FastAPI):
     await edge_simulation_service.start()
     await communication_simulation_service.start()
     await behavior_evaluation_service.start()
+    from app.security.services.security_controller import security_controller
+    await security_controller.start()
     logger.info("TrustChain-5G Server ready to accept incoming 5G telemetry and dashboard connections.")
     
     yield
     
     # Graceful server shutdown
     logger.info("Initiating elegant shutdown of TrustChain-5G backend engine...")
+    await security_controller.stop()
     await behavior_evaluation_service.stop()
     await communication_simulation_service.stop()
     await edge_simulation_service.stop()
@@ -118,6 +123,19 @@ def create_application() -> FastAPI:
     # Mount Sprint 4.2 ML Models Router
     app.include_router(models_router, prefix="/api/ml")
     app.include_router(models_router, prefix=f"{settings.API_V1_STR}/ml")
+
+    # Mount Sprint 4.3 ML Experiments Router
+    app.include_router(experiments_router, prefix="/api/ml/experiments")
+    app.include_router(experiments_router, prefix=f"{settings.API_V1_STR}/ml/experiments")
+
+    # Mount Sprint 4.4 Federated Learning Router
+    app.include_router(federated_router, prefix="/api/ml/federated")
+    app.include_router(federated_router, prefix=f"{settings.API_V1_STR}/ml/federated")
+
+    # Mount Sprint 6.0 Security Controller
+    from app.security.routers.security import router as security_router
+    app.include_router(security_router, prefix="/api/security")
+    app.include_router(security_router, prefix=f"{settings.API_V1_STR}/security")
 
     @app.get("/", tags=["System Status & Health Check"], summary="Root API Gateway Welcome Endpoint")
     async def root_welcome():

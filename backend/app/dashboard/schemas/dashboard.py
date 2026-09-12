@@ -94,6 +94,8 @@ class DashboardLiveResponse(BaseModel):
     recentEvents: List[ActivityEvent]
     recentFeatures: List[ExtractedFeatureItem]
     recentTrustEvents: List[TrustEvent] = Field(default_factory=list)
+    recentSecurityDecisions: List[Dict[str, Any]] = Field(default_factory=list)
+    recentMitigationActions: List[Dict[str, Any]] = Field(default_factory=list)
     trustProfiles: List[Any] = Field(default_factory=list)
     activeSessionsCount: int
     simulationStatus: SimulationStatus

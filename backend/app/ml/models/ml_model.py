@@ -22,6 +22,10 @@ class MLModel(BaseModel):
     artifactPath: str = Field(..., description="Path to the saved model artifact directory")
     status: str = Field(default="TRAINED", description="TRAINED, EVALUATED, VALIDATED, ACTIVE, FAILED, ARCHIVED")
     isActive: bool = Field(default=False)
+    trainingType: str = Field(default="CENTRALIZED", description="CENTRALIZED, FEDERATED")
+    aggregationStrategy: Optional[str] = Field(default=None)
+    clientCount: Optional[int] = Field(default=None)
+    trainingRounds: Optional[int] = Field(default=None)
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updatedAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

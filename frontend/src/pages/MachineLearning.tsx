@@ -9,10 +9,14 @@ import { DatasetVisualizations } from '@/components/ml/DatasetVisualizations';
 import { ModelTrainingView } from '@/components/ml/ModelTrainingView';
 import { ModelRegistryView } from '@/components/ml/ModelRegistryView';
 import { PerformanceDashboard } from '@/components/ml/PerformanceDashboard';
+import { FederatedDashboard } from '@/components/federated/FederatedDashboard';
+import { ExperimentDashboard } from '@/components/ml/ExperimentDashboard';
+import { RealTimeInferenceView } from '@/components/ml/RealTimeInferenceView';
+import { Network, Activity, Zap } from 'lucide-react';
 
 export const MachineLearning: React.FC = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'DATASETS' | 'TRAINING' | 'REGISTRY'>('DATASETS');
+  const [activeTab, setActiveTab] = useState<'DATASETS' | 'TRAINING' | 'REGISTRY' | 'FEDERATED' | 'EXPERIMENTS' | 'INFERENCE'>('DATASETS');
   
   // Datasets state
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
@@ -43,12 +47,12 @@ export const MachineLearning: React.FC = () => {
 
   const handleRegisterDummy = () => {
     registerMutation.mutate({
-      name: "CICIDS2017",
-      description: "Intrusion Detection Evaluation Dataset",
+      name: "CICIDS2017-DDoS",
+      description: "Intrusion Detection Evaluation Dataset (Friday DDoS)",
       source: "Canadian Institute for Cybersecurity",
-      filePath: "cicids2017.csv",
+      filePath: "cicids2017/MachineLearningCVE/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv",
       format: "CSV",
-      labelColumn: "Label"
+      labelColumn: " Label"
     });
   };
 
@@ -97,6 +101,24 @@ export const MachineLearning: React.FC = () => {
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'REGISTRY' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
         >
           <List className="w-4 h-4" /> Registry
+        </button>
+        <button 
+          onClick={() => setActiveTab('FEDERATED')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'FEDERATED' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+        >
+          <Network className="w-4 h-4" /> Federated Learning
+        </button>
+        <button 
+          onClick={() => setActiveTab('EXPERIMENTS')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'EXPERIMENTS' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+        >
+          <Activity className="w-4 h-4" /> Experiments
+        </button>
+        <button 
+          onClick={() => setActiveTab('INFERENCE')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'INFERENCE' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+        >
+          <Zap className="w-4 h-4" /> Inference
         </button>
       </div>
 
@@ -211,6 +233,18 @@ export const MachineLearning: React.FC = () => {
             <PerformanceDashboard modelId={selectedModelId} />
           )}
         </div>
+      )}
+
+      {activeTab === 'FEDERATED' && (
+        <FederatedDashboard />
+      )}
+
+      {activeTab === 'EXPERIMENTS' && (
+        <ExperimentDashboard />
+      )}
+
+      {activeTab === 'INFERENCE' && (
+        <RealTimeInferenceView />
       )}
 
     </div>

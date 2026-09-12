@@ -91,9 +91,18 @@ async def get_blockchain_blocks(page: int = 1, user=Depends(get_current_user_tok
 ml_router = APIRouter(prefix="/ml", tags=["Machine Learning Threat Detection"])
 
 @ml_router.post("/evaluate", response_model=APIResponse, summary="Trigger ML Threat Inference Engine")
-async def trigger_ml_evaluation(payload: Dict[str, Any], user=Depends(require_role("Researcher"))):
-    """Submit sample network traffic dataframe for real-time AI threat evaluation and classification."""
-    return APIResponse(success=True, message="ML Inference engine scaffold operational. Ready for threat classification in future sprint.", data={"predicted_class": "Benign Normal Activity", "confidence": 0.999})
+async def evaluate_traffic(payload: dict):
+    from app.ml.inference.inference_engine import inference_engine
+    
+    # We expect features in payload.get("features", {})
+    features = payload.get("features", payload)
+    
+    result = await inference_engine.predict(features)
+    
+    if not result:
+        return APIResponse(success=False, message="No active model available for inference.")
+        
+    return APIResponse(success=True, message="Inference successful.", data=result.model_dump())
 
 
 # ==============================================================================

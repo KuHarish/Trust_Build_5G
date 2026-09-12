@@ -1,5 +1,8 @@
 # Node / Vite Frontend
+backend/data/*
+backend/data/processed/*
 node_modules/
+__pycache__/
 dist/
 build/
 .vite/

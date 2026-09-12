@@ -64,9 +64,15 @@ class ModelRegistryService:
             
         # Verify artifact exists by doing a dry-run load
         try:
-            model_artifact_service.load_artifact(model_id)
+            model, meta, feats, prep = model_artifact_service.load_artifact(model_id)
+            # Perform dummy inference to ensure it actually predicts
+            # Just create a 1-row zero matrix matching the feature count
+            import pandas as pd
+            import numpy as np
+            dummy_X = pd.DataFrame(np.zeros((1, len(feats["features"]))), columns=feats["features"])
+            model.predict(dummy_X)
         except Exception as e:
-            raise ValueError(f"Cannot activate: Model artifact validation failed: {e}")
+            raise ValueError(f"Cannot activate: Model validation failed (Artifact or Test inference failed): {e}")
             
         # Archive current active model
         current_active = await ml_repository.get_active_model()
@@ -79,7 +85,17 @@ class ModelRegistryService:
         ml_model.status = "ACTIVE"
         await ml_repository.save_model(ml_model)
         
-        logger.info(f"Model {model_id} has been ACTIVATED.")
+        # Log to blockchain
+        from app.blockchain.services.blockchain_service import blockchain_service
+        blockchain_service.record_transaction({
+            "eventType": "MODEL_ACTIVATED",
+            "modelId": model_id,
+            "trainingType": ml_model.trainingType,
+            "algorithm": ml_model.algorithm,
+            "datasetId": ml_model.datasetId
+        })
+        
+        logger.info(f"Model {model_id} has been ACTIVATED and audited.")
         return True
         
     async def archive_model(self, model_id: str) -> bool:

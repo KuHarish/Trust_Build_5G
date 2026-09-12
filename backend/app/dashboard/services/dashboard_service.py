@@ -32,6 +32,7 @@ from app.communication.services.communication_service import communication_servi
 from app.communication.repositories.communication_repository import communication_repository
 from app.trust.services.trust_service import trust_service
 from app.trust.repositories.trust_repository import trust_evaluation_history_repo
+from app.security.repositories.security_repository import security_repository
 
 # Background simulation daemons
 from app.simulator.services.simulation_service import simulation_service as node_sim_daemon
@@ -209,6 +210,12 @@ class DashboardService:
             communicationInterval=edge_sim_daemon._interval_sec,
         )
 
+        # Compile recent security decisions and actions
+        recent_decisions_raw = await security_repository.get_recent_decisions(limit=10)
+        recent_actions_raw = await security_repository.get_recent_actions(limit=10)
+        recent_decisions = [d.model_dump() for d in recent_decisions_raw]
+        recent_actions = [a.model_dump() for a in recent_actions_raw]
+
         return DashboardLiveResponse(
             success=True,
             overview=overview,
@@ -216,6 +223,8 @@ class DashboardService:
             recentEvents=recent_events,
             recentFeatures=recent_features,
             recentTrustEvents=recent_trust_events,
+            recentSecurityDecisions=recent_decisions,
+            recentMitigationActions=recent_actions,
             trustProfiles=trust_profiles,
             activeSessionsCount=overview.activeSessions,
             simulationStatus=sim_status,
