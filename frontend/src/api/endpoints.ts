@@ -85,3 +85,14 @@ export const securityApi = {
 export const analyticsApi = {
   getSummary: (timeWindow = '24h') => apiClient.get(`/analytics/summary?time_window=${timeWindow}`),
 };
+
+export const simulationApi = {
+  getStatus: () => apiClient.get('/simulation/status'),
+  start: () => apiClient.post('/simulation/start'),
+  pause: () => apiClient.post('/simulation/pause'),
+  resume: () => apiClient.post('/simulation/resume'),
+  stop: () => apiClient.post('/simulation/stop'),
+  reset: () => apiClient.post('/simulation/reset'),
+  getNodes: () => apiClient.get('/simulation/nodes'),
+  getEvents: () => apiClient.get('/simulation/events'),
+};

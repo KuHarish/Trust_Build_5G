@@ -17,11 +17,22 @@ import { Button } from '@/components/common';
 import { RefreshCw, Download, Radio, Activity, Share2, Sliders, Cpu, Filter } from 'lucide-react';
 import { useNotification } from '@/contexts';
 
+import { useQuery } from '@tanstack/react-query';
+import { simulationApi } from '@/api/endpoints';
+
 export const Dashboard: React.FC = () => {
   const { liveData, isLoading, connectionType, refetch } = useLiveDashboardStream();
   const { data: nodesData } = useNodes({ limit: 100 });
   const { data: sessionsData } = useCommunicationSessions({ limit: 100, status: 'ACTIVE' });
   const { addNotification } = useNotification();
+
+  // Phase 8 Simulation Status
+  const { data: simStatusRes } = useQuery({
+    queryKey: ['simulation-status'],
+    queryFn: () => simulationApi.getStatus().then(r => r.data),
+    refetchInterval: 5000,
+  });
+  const simStatus = simStatusRes || { enabled: false, state: 'STOPPED', nodeCount: 0, activeNodes: 0 };
 
   const [activeTab, setActiveTab] = useState<'overview' | 'topology' | 'streams' | 'controls'>('overview');
   const [filterNodeType, setFilterNodeType] = useState<string>('ALL');
@@ -67,6 +78,29 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Phase 8 Simulation Status Banner */}
+      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-lg flex flex-wrap gap-6 items-center">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-5 h-5 text-indigo-400" />
+          <span className="text-slate-300 font-bold text-sm">Simulation Mode:</span>
+          <span className={`px-2 py-0.5 rounded text-xs font-bold ${simStatus.enabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+            {simStatus.enabled ? 'ENABLED' : 'DISABLED'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-400 font-bold">Status:</span>
+          <span className="text-white">{simStatus.state}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-400 font-bold">Node Count:</span>
+          <span className="text-white">{simStatus.nodeCount}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-400 font-bold">Active Nodes:</span>
+          <span className="text-white">{simStatus.activeNodes}</span>
+        </div>
+      </div>
+
       {/* Master Command Header with Live Connection Badge */}
       <PageHeader
         title="5G Cybersecurity Command & Control (Mod 4 Integration)"

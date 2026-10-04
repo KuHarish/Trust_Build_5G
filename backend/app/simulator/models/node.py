@@ -12,23 +12,24 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class SimulationNodeType(str, Enum):
     """Supported virtual 5G edge, IoT, and gateway node classifications."""
-    SMARTPHONE = "Smartphone"
-    IOT_SENSOR = "IoT Sensor"
-    EDGE_DEVICE = "Edge Device"
-    GATEWAY = "Gateway"
-    AUTONOMOUS_VEHICLE = "Autonomous Vehicle"
-    INDUSTRIAL_DEVICE = "Industrial Device"
-    MEDICAL_DEVICE = "Medical Device"
-    DRONE = "Drone"
+    EDGE_IOT = "Edge / IoT Node"
+    EDGE_PROCESSING = "Edge Processing Node"
+    GATEWAY = "Gateway Node"
+    AGGREGATION = "Aggregation Node"
+    CORE_SERVER = "Core / Server Node"
 
 
 class SimulationNodeStatus(str, Enum):
     """Node operational states in simulated network landscape."""
-    ONLINE = "ONLINE"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
     OFFLINE = "OFFLINE"
-    BUSY = "BUSY"
-    SLEEPING = "SLEEPING"
     MAINTENANCE = "MAINTENANCE"
+
+
+class SimulationNodeRelationship(BaseModel):
+    targetId: str
+    relationshipType: str = "CONNECTED_TO"
 
 
 class SimulationNode(BaseModel):
@@ -41,7 +42,8 @@ class SimulationNode(BaseModel):
     nodeName: str = Field(..., description="Unique display designation for the network node")
     nodeType: SimulationNodeType = Field(..., description="Classification category of the simulated 5G entity")
     deviceCategory: str = Field(default="Standard 5G Entity", description="Broad functional device family")
-    status: SimulationNodeStatus = Field(default=SimulationNodeStatus.ONLINE, description="Current radio and operational status")
+    status: SimulationNodeStatus = Field(default=SimulationNodeStatus.ACTIVE, description="Current radio and operational status")
+    simulationMode: bool = Field(default=True, description="Flag indicating if this is a simulated node")
     ipAddress: str = Field(..., description="Virtual IPv4 or IPv6 network assigned transport address")
     macAddress: str = Field(..., description="Virtual hardware layer interface MAC address")
     latitude: float = Field(..., description="Geographic latitude coordinate (-90.0 to 90.0)")
@@ -54,5 +56,5 @@ class SimulationNode(BaseModel):
     lastSeen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of latest telemetry check-in")
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp when node was first registered")
     updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of latest attribute modification")
-    connections: int = Field(default=0, description="Count of simulated attached peers or access circuits")
+    relationships: list[SimulationNodeRelationship] = Field(default_factory=list, description="Network topology connections")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Custom extensible telemetry specifications and hardware properties")

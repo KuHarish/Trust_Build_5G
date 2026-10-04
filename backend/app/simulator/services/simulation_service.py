@@ -1,57 +1,159 @@
-"""
-TrustChain-5G Background Network Simulation Service.
-Every 5 seconds, asynchronously updates simulated nodes' Signal Strength, Battery, Latency,
-Bandwidth, Last Seen timestamp, and Node Status within realistic radio/hardware tolerances.
-No attack vectors or complex routing interactions are generated in Module 1.
-"""
-
 import asyncio
 import logging
 import random
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
+
+from app.core.config import settings
 from app.simulator.repositories.node_repository import node_repository
 from app.simulator.models.node import SimulationNodeStatus
+from app.simulator.models.simulation import (
+    SimulationState, 
+    SimulationEventType, 
+    SimulationEvent,
+    SimulationStatusResponse
+)
+from app.simulator.services.topology_generator import generate_topology
 
 logger = logging.getLogger("trustchain.simulator.engine")
 
 
 class SimulationService:
     """
-    Asynchronous 5-second recurring telemetry simulation loop for registered virtual nodes.
+    Central Simulation Engine for TrustChain-5G.
+    Manages Simulation State, Node Registry, Clock, and Lifecycle.
     """
     def __init__(self):
         self._task: Optional[asyncio.Task] = None
-        self._running = False
-        self._interval_seconds = 5.0
+        self._state: SimulationState = SimulationState.STOPPED
+        self._speed: float = settings.SIMULATION_DEFAULT_SPEED
+        self._interval_seconds: float = 5.0
+        self._simulation_time: float = 0.0
+        self._events: List[SimulationEvent] = []
+        self._simulation_id: str = "sim_default"
 
-    async def start(self) -> None:
-        """Start the background simulation daemon."""
-        if self._running:
+    def _add_event(self, event_type: SimulationEventType, metadata: dict = None, node_id: str = None):
+        event = SimulationEvent(
+            simulationId=self._simulation_id,
+            eventType=event_type,
+            simulationTime=self._simulation_time,
+            nodeId=node_id,
+            metadata=metadata or {}
+        )
+        self._events.append(event)
+        # Keep recent events bounded to avoid memory leaks if no database is hooked up for events
+        if len(self._events) > 1000:
+            self._events = self._events[-1000:]
+        return event
+
+    async def _initialize_nodes(self):
+        """Creates the deterministic simulation topology based on the seed."""
+        # Clear existing nodes for a clean slate
+        nodes = await node_repository.get_all()
+        for node in nodes:
+            await node_repository.delete(node.id)
+
+        # Generate topology
+        new_nodes = generate_topology()
+        for node in new_nodes:
+            await node_repository.create(node)
+            # self._add_event(SimulationEventType.NODE_CREATED, node_id=node.id)
+            
+        logger.info(f"Initialized {len(new_nodes)} simulated nodes in the registry.")
+
+    async def startSimulation(self) -> None:
+        if not settings.ENABLE_NETWORK_SIMULATION:
+            logger.warning("Simulation mode is disabled in settings.")
             return
-        self._running = True
-        # Ensure default baseline nodes exist
-        await node_repository.initialize_default_nodes_if_empty()
-        self._task = asyncio.create_task(self._simulation_loop())
-        logger.info(f"TrustChain-5G Network Node Simulation Service started (Interval: {self._interval_seconds}s).")
 
-    async def stop(self) -> None:
-        """Terminate the simulation loop gracefully on server teardown."""
-        self._running = False
+        if self._state in [SimulationState.RUNNING, SimulationState.STARTING]:
+            return
+
+        self._state = SimulationState.STARTING
+        
+        # Check if we need to initialize
+        nodes = await node_repository.get_all()
+        if not nodes:
+            await self._initialize_nodes()
+
+        self._state = SimulationState.RUNNING
+        self._add_event(SimulationEventType.SIMULATION_STARTED, {"speed": self._speed})
+        self._task = asyncio.create_task(self._simulation_loop())
+        logger.info(f"Simulation Engine started at {self._speed}x speed.")
+
+    async def pauseSimulation(self) -> None:
+        if self._state == SimulationState.RUNNING:
+            self._state = SimulationState.PAUSED
+            self._add_event(SimulationEventType.SIMULATION_PAUSED)
+            logger.info("Simulation Engine paused.")
+
+    async def resumeSimulation(self) -> None:
+        if self._state == SimulationState.PAUSED:
+            self._state = SimulationState.RUNNING
+            self._add_event(SimulationEventType.SIMULATION_RESUMED, {"speed": self._speed})
+            logger.info("Simulation Engine resumed.")
+
+    async def stopSimulation(self) -> None:
+        if self._state == SimulationState.STOPPED:
+            return
+            
+        self._state = SimulationState.STOPPING
         if self._task and not self._task.done():
             self._task.cancel()
             try:
                 await self._task
             except asyncio.CancelledError:
                 pass
-        logger.info("TrustChain-5G Network Node Simulation Service stopped gracefully.")
+                
+        self._state = SimulationState.STOPPED
+        self._add_event(SimulationEventType.SIMULATION_STOPPED)
+        logger.info("Simulation Engine stopped.")
+
+    async def resetSimulation(self) -> None:
+        await self.stopSimulation()
+        self._simulation_time = 0.0
+        self._events.clear()
+        
+        # Reset the topology
+        await self._initialize_nodes()
+        
+        self._add_event(SimulationEventType.SIMULATION_RESET)
+        logger.info("Simulation Engine reset successfully.")
+
+    def getSimulationStatus(self) -> SimulationStatusResponse:
+        return SimulationStatusResponse(
+            enabled=settings.ENABLE_NETWORK_SIMULATION,
+            state=self._state,
+            speed=self._speed,
+            nodeCount=0, # Will be filled by router
+            activeNodes=0, # Will be filled by router
+            simulationTime=self._simulation_time
+        )
+        
+    async def getSimulationStatusAsync(self) -> SimulationStatusResponse:
+        nodes = await node_repository.get_all()
+        active_nodes = sum(1 for n in nodes if n.status == SimulationNodeStatus.ACTIVE)
+        return SimulationStatusResponse(
+            enabled=settings.ENABLE_NETWORK_SIMULATION,
+            state=self._state,
+            speed=self._speed,
+            nodeCount=len(nodes),
+            activeNodes=active_nodes,
+            simulationTime=self._simulation_time
+        )
+
+    def get_events(self) -> List[SimulationEvent]:
+        return self._events
 
     async def _simulation_loop(self) -> None:
         """Main recurring simulation loop."""
-        while self._running:
+        while self._state in [SimulationState.RUNNING, SimulationState.PAUSED]:
             try:
                 await asyncio.sleep(self._interval_seconds)
-                await self._update_simulation_telemetry()
+                if self._state == SimulationState.RUNNING:
+                    # Advance simulation clock
+                    self._simulation_time += self._interval_seconds * self._speed
+                    await self._update_simulation_telemetry()
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -74,11 +176,11 @@ class SimulationService:
             node.signalStrength = round(new_signal, 1)
 
             # 3. Realistic Battery consumption & regenerative solar/grid recharging
-            # If battery drops below 15%, simulate docking/grid recharge
             if node.batteryLevel < 18.0:
                 node.batteryLevel = round(min(100.0, node.batteryLevel + random.uniform(15.0, 35.0)), 1)
                 if node.status == SimulationNodeStatus.OFFLINE:
-                    node.status = SimulationNodeStatus.ONLINE
+                    node.status = SimulationNodeStatus.ACTIVE
+                    self._add_event(SimulationEventType.NODE_STATUS_CHANGED, {"new_status": node.status}, node_id=node.id)
             else:
                 battery_drain = random.uniform(0.05, 0.4)
                 node.batteryLevel = round(max(0.0, node.batteryLevel - battery_drain), 1)
@@ -94,20 +196,27 @@ class SimulationService:
 
             # 6. Occasional realistic state transitions (approx 8% chance per cycle)
             if random.random() < 0.08:
-                if node.status == SimulationNodeStatus.ONLINE:
-                    # Occasional transition to BUSY or SLEEPING (for IoT/Drones)
-                    node.status = random.choice([SimulationNodeStatus.BUSY, SimulationNodeStatus.SLEEPING])
-                elif node.status in [SimulationNodeStatus.BUSY, SimulationNodeStatus.SLEEPING]:
-                    # Wake up back to ONLINE
-                    node.status = SimulationNodeStatus.ONLINE
-                elif node.status == SimulationNodeStatus.MAINTENANCE and random.random() < 0.3:
-                    node.status = SimulationNodeStatus.ONLINE
+                old_status = node.status
+                if node.status == SimulationNodeStatus.ACTIVE:
+                    node.status = random.choice([SimulationNodeStatus.INACTIVE, SimulationNodeStatus.MAINTENANCE])
+                elif node.status in [SimulationNodeStatus.INACTIVE, SimulationNodeStatus.MAINTENANCE]:
+                    node.status = SimulationNodeStatus.ACTIVE
+                
+                if old_status != node.status:
+                    self._add_event(SimulationEventType.NODE_STATUS_CHANGED, {"old_status": old_status, "new_status": node.status}, node_id=node.id)
 
             node.updatedAt = now
             await node_repository.update(node)
             modified_count += 1
 
-        logger.debug(f"Simulation Service cycle completed: updated telemetry for {modified_count} virtual 5G nodes.")
+        # logger.debug(f"Simulation Service cycle completed: updated telemetry for {modified_count} virtual 5G nodes.")
+
+    # Keeping old start() and stop() signatures for backward compatibility in main.py
+    async def start(self) -> None:
+        await self.startSimulation()
+
+    async def stop(self) -> None:
+        await self.stopSimulation()
 
 
 # Instantiate global simulation service engine

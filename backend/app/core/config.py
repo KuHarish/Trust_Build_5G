@@ -69,12 +69,17 @@ class Settings(BaseSettings):
         return []
 
     # Module Feature Flags (Sprint 0 - Set to False per requirement to NOT implement active logic yet)
-    ENABLE_NETWORK_SIMULATION: bool = False
+    ENABLE_NETWORK_SIMULATION: bool = True
     ENABLE_ML_INTRUSION: bool = False
     ENABLE_FEDERATED_LEARNING: bool = False
     ENABLE_BLOCKCHAIN_STORAGE: bool = False
     ENABLE_TRUST_ENGINE: bool = False
     ENABLE_SECURITY_CONTROLLER: bool = False
+    
+    # Phase 8 Simulation Settings
+    SIMULATION_NODE_COUNT: int = 60
+    SIMULATION_SEED: int = 12345
+    SIMULATION_DEFAULT_SPEED: float = 1.0
 
 
 # Instantiate singleton global configuration

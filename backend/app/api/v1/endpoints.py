@@ -363,7 +363,7 @@ async def get_analytics_summary(time_window: str = "24h", user=Depends(get_curre
         mitigated_attacks = sum(1 for d in recent_decisions if d.decision in ["BLOCK", "QUARANTINE", "RATE_LIMIT"])
         
         # Count active nodes
-        from app.nodes.repositories.node_repository import node_repository
+        from app.simulator.repositories.node_repository import node_repository
         nodes = await node_repository.list_nodes()
         total_monitored_nodes = len(nodes)
         

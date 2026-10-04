@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     nodes_router, traffic_router, attacks_router,
     blockchain_router, ml_router, federated_router, security_router, analytics_router
 )
+from app.simulator.routers.simulation import router as simulation_router
 
 api_router = APIRouter()
 
@@ -21,6 +22,9 @@ api_router.include_router(version_router)
 
 # Include Authentication Foundation
 api_router.include_router(auth_router)
+
+# Include Simulation Foundation
+api_router.include_router(simulation_router)
 
 # Include Cybersecurity Platform Module Placeholder Scaffolds
 api_router.include_router(nodes_router)
