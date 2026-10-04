@@ -41,7 +41,13 @@ export const trustApi = {
 };
 
 export const blockchainApi = {
-  getBlocks: (page = 1) => apiClient.get(`/blockchain/blocks?page=${page}`),
+  getBlocks: (page = 1, eventType?: string) => {
+    let url = `/blockchain/blocks?page=${page}`;
+    if (eventType) url += `&event_type=${eventType}`;
+    return apiClient.get(url);
+  },
+  getOverview: () => apiClient.get('/blockchain/overview'),
+  validateChain: () => apiClient.get('/blockchain/validate'),
 };
 
 export const mlApi = {
@@ -54,6 +60,8 @@ export const federatedApi = {
 
 export const securityApi = {
   mitigate: (nodeId: string, action: string) => apiClient.post(`/security/mitigate/${nodeId}?action=${action}`),
+  getAuditTimeline: (correlationId: string) => apiClient.get(`/security/audit/timeline/${correlationId}`),
+  getNodeAuditHistory: (nodeId: string, limit = 50, skip = 0) => apiClient.get(`/security/audit/node/${nodeId}?limit=${limit}&skip=${skip}`),
 };
 
 export const analyticsApi = {

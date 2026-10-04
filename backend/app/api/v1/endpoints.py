@@ -75,14 +75,95 @@ async def list_attack_logs(severity: Optional[str] = None, user=Depends(get_curr
 blockchain_router = APIRouter(prefix="/blockchain", tags=["Blockchain Trust Storage"])
 
 @blockchain_router.get("/blocks", response_model=PaginatedResponse, summary="Browse Immutable Cryptographic Blocks")
-async def get_blockchain_blocks(page: int = 1, user=Depends(get_current_user_token)):
+async def get_blockchain_blocks(page: int = 1, limit: int = 20, event_type: Optional[str] = None, user=Depends(get_current_user_token)):
     """Retrieve immutable blockchain blocks sealing network trust reputations and evidence ledgers."""
-    mock_block = {
-        "_id": 0, "block_hash": "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-        "timestamp": "2026-07-27T00:00:00Z", "validator_node_id": "Genesis-Validator", "transactions_count": 1
-    }
-    return PaginatedResponse(success=True, total_count=1, data=[mock_block])
+    from app.blockchain.services.blockchain_service import blockchain_service
+    
+    coll = blockchain_service.collection
+    if coll is None:
+        return PaginatedResponse(success=False, total_count=0, data=[], message="Database unavailable.")
+        
+    query = {}
+    if event_type:
+        query["transactions.transaction_type"] = event_type
+        
+    skip = (page - 1) * limit
+    cursor = coll.find(query).sort("block_index", -1).skip(skip).limit(limit)
+    
+    blocks = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        blocks.append(doc)
+        
+    total_count = await coll.count_documents(query)
+    
+    return PaginatedResponse(
+        success=True, 
+        total_count=total_count, 
+        data=blocks,
+        message="Blocks retrieved successfully."
+    )
+
+@blockchain_router.get("/overview", response_model=APIResponse, summary="Get Blockchain Status and Overview")
+async def get_blockchain_overview(user=Depends(get_current_user_token)):
+    from app.blockchain.services.blockchain_service import blockchain_service
+    coll = blockchain_service.collection
+    if coll is None:
+        return APIResponse(success=False, message="Database unavailable.")
+        
+    total_blocks = await coll.count_documents({})
+    latest_block = await blockchain_service._get_latest_block()
+    
+    if latest_block:
+        latest_block["_id"] = str(latest_block["_id"])
+    
+    return APIResponse(success=True, data={
+        "status": "ONLINE",
+        "totalBlocks": total_blocks,
+        "latestBlock": latest_block
+    })
+
+@blockchain_router.get("/validate", response_model=APIResponse, summary="Validate Blockchain Integrity")
+async def validate_blockchain(user=Depends(get_current_user_token)):
+    from app.blockchain.services.blockchain_service import blockchain_service
+    coll = blockchain_service.collection
+    if coll is None:
+        return APIResponse(success=False, message="Database unavailable.")
+        
+    cursor = coll.find({}).sort("block_index", 1)
+    
+    blocks = []
+    async for doc in cursor:
+        blocks.append(doc)
+        
+    if not blocks:
+        return APIResponse(success=True, data={"isValid": True, "message": "Chain is empty."})
+        
+    for i in range(len(blocks)):
+        current_block = blocks[i]
+        
+        # Verify hash
+        # Need to reconstruct the block dict exactly as it was when hashed
+        block_copy = {**current_block}
+        del block_copy["block_hash"]
+        # Convert _id back to int because it might have been saved as int
+        
+        computed_hash = blockchain_service._hash_block(block_copy)
+        if computed_hash != current_block["block_hash"]:
+            return APIResponse(success=True, data={
+                "isValid": False, 
+                "message": f"Tampering detected at block {current_block['block_index']}. Hash mismatch."
+            })
+            
+        if i > 0:
+            previous_block = blocks[i-1]
+            if current_block["previous_hash"] != previous_block["block_hash"]:
+                return APIResponse(success=True, data={
+                    "isValid": False, 
+                    "message": f"Tampering detected at block {current_block['block_index']}. Previous hash mismatch."
+                })
+                
+    return APIResponse(success=True, data={"isValid": True, "message": "Chain is cryptographically valid."})
 
 
 # ==============================================================================
