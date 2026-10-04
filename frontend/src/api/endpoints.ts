@@ -24,6 +24,7 @@ export const trafficApi = {
 
 export const attacksApi = {
   list: (params?: Record<string, unknown>) => apiClient.get('/attacks', { params }),
+  getDetails: (attackId: string) => apiClient.get(`/attacks/${attackId}`),
 };
 
 export const trustApi = {

@@ -59,15 +59,87 @@ async def get_packet_stream(session_id: Optional[str] = None, user=Depends(requi
 attacks_router = APIRouter(prefix="/attacks", tags=["Intrusion Detection & Threats"])
 
 @attacks_router.get("", response_model=PaginatedResponse, summary="Retrieve Intrusion & Threat Detection Logs")
-async def list_attack_logs(severity: Optional[str] = None, user=Depends(get_current_user_token)):
+async def list_attack_logs(
+    page: int = 1, 
+    limit: int = 20, 
+    attack_type: Optional[str] = Query(None, description="Filter by ML Prediction class"),
+    node_id: Optional[str] = Query(None, description="Filter by Node ID"),
+    severity: Optional[str] = Query(None, description="Filter by Severity"),
+    user=Depends(get_current_user_token)
+):
     """Retrieve documented cyber threat detections, DDoS surges, and MitM interception alerts."""
-    mock_attacks = [
-        {"_id": "ATK-2026-001", "attack_type": "DDoS SYN Flood", "severity": "Critical", "target_node_id": "GNB-001", "confidence_score": 0.98, "mitigation_status": "Mitigated"},
-        {"_id": "ATK-2026-002", "attack_type": "Federated Learning Model Poisoning", "severity": "High", "target_node_id": "MEC-003", "confidence_score": 0.94, "mitigation_status": "Quarantined"}
-    ]
-    return PaginatedResponse(success=True, total_count=len(mock_attacks), data=mock_attacks)
+    from app.security.repositories.security_repository import security_repository
+    
+    query = {
+        "mlPrediction": {"$nin": [None, "MISSING", "BENIGN", "Normal", "normal"]}
+    }
+    
+    if attack_type:
+        query["mlPrediction"] = attack_type
+    if node_id:
+        query["nodeId"] = node_id
+    if severity:
+        query["severity"] = severity
+        
+    skip = (page - 1) * limit
+    cursor = security_repository.decisions_collection.find(query).sort("createdAt", -1).skip(skip).limit(limit)
+    
+    attacks = []
+    async for doc in cursor:
+        # Fetch associated mitigation status
+        action_doc = await security_repository.actions_collection.find_one({"decisionId": doc["_id"]})
+        mitigation_status = action_doc["status"] if action_doc else "PENDING"
+        
+        attacks.append({
+            "_id": doc["_id"],
+            "attack_type": doc.get("mlPrediction"),
+            "severity": doc.get("severity"),
+            "target_node_id": doc.get("nodeId"),
+            "confidence_score": doc.get("mlConfidence"),
+            "trust_score": doc.get("trustScore"),
+            "trust_level": doc.get("trustLevel"),
+            "decision": doc.get("decision"),
+            "mitigation_status": mitigation_status,
+            "timestamp": doc.get("createdAt"),
+            "correlation_id": doc.get("explanation", {}).get("correlationId")
+        })
+        
+    total_count = await security_repository.decisions_collection.count_documents(query)
+    return PaginatedResponse(success=True, total_count=total_count, data=attacks)
 
 
+@attacks_router.get("/{decision_id}", response_model=APIResponse, summary="Retrieve Attack Investigation Details")
+async def get_attack_details(decision_id: str, user=Depends(get_current_user_token)):
+    from app.security.repositories.security_repository import security_repository
+    
+    doc = await security_repository.decisions_collection.find_one({"_id": decision_id})
+    if not doc:
+        return APIResponse(success=False, message="Attack record not found.")
+        
+    action_doc = await security_repository.actions_collection.find_one({"decisionId": decision_id})
+    mitigation_status = action_doc["status"] if action_doc else "PENDING"
+    
+    # Map raw model to frontend expectation
+    attack_data = {
+        "_id": doc["_id"],
+        "attack_type": doc.get("mlPrediction"),
+        "severity": doc.get("severity"),
+        "target_node_id": doc.get("nodeId"),
+        "confidence_score": doc.get("mlConfidence"),
+        "trust_score": doc.get("trustScore"),
+        "trust_level": doc.get("trustLevel"),
+        "decision": doc.get("decision"),
+        "mitigation_status": mitigation_status,
+        "timestamp": doc.get("createdAt"),
+        "correlation_id": doc.get("explanation", {}).get("correlationId"),
+        "policy_id": doc.get("policyId"),
+        "policy_version": doc.get("policyVersion"),
+        "reason": doc.get("reason"),
+        "explanation": doc.get("explanation", {}),
+        "mitigation_action": action_doc if action_doc else None
+    }
+    
+    return APIResponse(success=True, data=attack_data)
 
 # ==============================================================================
 # 5. BLOCKCHAIN LEDGER API ROUTER
