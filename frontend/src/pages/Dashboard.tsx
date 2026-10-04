@@ -30,7 +30,7 @@ export const Dashboard: React.FC = () => {
   // Phase 8 Simulation Status
   const { data: simStatusRes } = useQuery({
     queryKey: ['simulation-status'],
-    queryFn: () => simulationApi.getStatus().then(r => r.data),
+    queryFn: () => simulationApi.getStatus().then(r => r.data.data),
     refetchInterval: 5000,
   });
   const simStatus = simStatusRes || { enabled: false, state: 'STOPPED', nodeCount: 0, activeNodes: 0 };

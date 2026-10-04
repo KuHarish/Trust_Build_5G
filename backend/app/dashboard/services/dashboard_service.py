@@ -202,7 +202,7 @@ class DashboardService:
 
         # Determine daemon simulation status
         sim_status = SimulationStatus(
-            running=(node_sim_daemon._running or comm_sim_daemon.running) and not self._sim_paused,
+            running=(getattr(node_sim_daemon, '_state', None) and node_sim_daemon._state.value == "RUNNING" or getattr(comm_sim_daemon, 'running', False)) and not getattr(self, '_sim_paused', False),
             paused=self._sim_paused,
             speedMultiplier=self._speed_multiplier,
             nodeCount=overview.totalNodes,

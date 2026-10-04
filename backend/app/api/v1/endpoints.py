@@ -8,8 +8,12 @@ Security Controller, and Analytics without active business logic.
 
 from fastapi import APIRouter, status, Depends, Query
 from typing import Optional, List, Dict, Any
+import logging
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.core.dependencies import get_current_user_token, require_role
+
+logger = logging.getLogger("trustchain.api.endpoints")
+
 
 # ==============================================================================
 # 1. NODES API ROUTER
@@ -364,11 +368,11 @@ async def get_analytics_summary(time_window: str = "24h", user=Depends(get_curre
         
         # Count active nodes
         from app.simulator.repositories.node_repository import node_repository
-        nodes = await node_repository.list_nodes()
+        nodes = await node_repository.get_all()
         total_monitored_nodes = len(nodes)
         
         # Traffic events count
-        traffic_events = await edge_repository.list_events(limit=1000)
+        traffic_events, _ = await edge_repository.list_events(limit=1000)
         
         # Blockchain events
         blockchain_sealed_transactions = blockchain_service.chain.index if hasattr(blockchain_service.chain, 'index') else len(blockchain_service.chain)

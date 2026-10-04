@@ -127,6 +127,52 @@ class TrafficGenerator:
             await self._process_and_evaluate(req, source.id)
 
     async def _process_and_evaluate(self, req: EventCreateRequest, node_id: str):
+        # 0. Broadcast packet to Module 3 (Communication Engine) so Dashboard UI renders it
+        try:
+            from app.communication.models.session import CommunicationSession, SessionStatus, TrafficType
+            from app.communication.models.packet import Packet
+            from app.communication.repositories.communication_repository import communication_repository
+            
+            session_id = f"sim_sess_{req.sourceNodeId[:8]}_{req.destinationNodeId[:8]}"
+            session = await communication_repository.get_session_by_id(session_id)
+            if not session:
+                session = CommunicationSession(
+                    sessionId=session_id,
+                    sourceNodeId=req.sourceNodeId,
+                    destinationNodeId=req.destinationNodeId,
+                    protocol=req.protocol,
+                    trafficType=TrafficType.TELEMETRY,
+                    averageLatency=req.latency,
+                    averageBandwidth=req.bandwidth,
+                    signalStrength=req.signalStrength,
+                    status=SessionStatus.ACTIVE
+                )
+                await communication_repository.insert_session(session)
+            
+            packet = Packet(
+                sessionId=session_id,
+                sourceNodeId=req.sourceNodeId,
+                destinationNodeId=req.destinationNodeId,
+                sequenceNumber=session.packetsSent + 1,
+                packetSize=req.packetSize,
+                payloadSize=max(1, int(req.packetSize * 0.8)),
+                protocol=req.protocol,
+                trafficType=TrafficType.TELEMETRY,
+                ttl=req.ttl,
+                latency=req.latency,
+                bandwidth=req.bandwidth,
+                status=req.status
+            )
+            await communication_repository.insert_packet(packet)
+            
+            session.packetsSent += 1
+            if str(packet.status).upper() == "SUCCESS" or packet.status == EventStatus.SUCCESS:
+                session.packetsReceived += 1
+                session.bytesTransferred += packet.payloadSize
+            await communication_repository.update_session(session)
+        except Exception as e:
+            logger.error(f"Error bridging traffic to Module 3: {e}")
+
         # 1. Store traffic event via Module 2
         await edge_service.process_and_store_event(req)
         
