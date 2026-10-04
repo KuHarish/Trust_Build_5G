@@ -157,7 +157,7 @@ export const SecurityController: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${d.severity === 'CRITICAL' ? 'text-rose-500' : d.severity === 'HIGH' ? 'text-amber-500' : d.severity === 'MEDIUM' ? 'text-yellow-500' : 'text-slate-400'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${d.severity === 'CRITICAL' ? 'bg-rose-900 text-rose-200 border-rose-500' : d.severity === 'HIGH' ? 'bg-orange-900 text-orange-200 border-orange-500' : d.severity === 'MEDIUM' ? 'bg-amber-900 text-amber-200 border-amber-500' : 'bg-slate-800 text-slate-200 border-slate-500'}`}>
                         {d.severity}
                       </span>
                     </td>

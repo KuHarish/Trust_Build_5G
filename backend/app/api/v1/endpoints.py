@@ -45,7 +45,42 @@ traffic_router = APIRouter(prefix="/traffic", tags=["Traffic Telemetry & DPI"])
 @traffic_router.get("/logs", response_model=PaginatedResponse, summary="Query Traffic Telemetry Logs")
 async def get_traffic_logs(node_id: Optional[str] = None, user=Depends(get_current_user_token)):
     """Retrieve statistical traffic window telemetry logs across monitored interfaces."""
-    return PaginatedResponse(success=True, total_count=0, data=[], message="Traffic log streaming service scaffold ready.")
+    from app.edge.services.edge_service import edge_service
+    from app.security.repositories.security_repository import security_repository
+    
+    events, count = await edge_service.list_events(limit=100, search=node_id)
+    
+    data = []
+    for ev in events:
+        # Check for associated security decisions (most recent for source node)
+        sec_query = {"nodeId": ev.sourceNodeId}
+        # Sort by createdAt descending to get the most recent decision
+        sec_cursor = security_repository.decisions_collection.find(sec_query).sort("createdAt", -1).limit(1)
+        
+        attack_type = "Normal"
+        decision = None
+        corr_id = None
+        
+        async for s_doc in sec_cursor:
+            pred = s_doc.get("mlPrediction")
+            if pred and pred not in ["Normal", "normal", "BENIGN", "MISSING"]:
+                attack_type = pred
+                decision = s_doc.get("decision")
+                corr_id = s_doc.get("explanation", {}).get("correlationId")
+        
+        data.append({
+            "eventId": ev.eventId,
+            "timestamp": ev.timestamp,
+            "source": ev.sourceNodeId,
+            "destination": ev.destinationNodeId,
+            "protocol": ev.protocol.value,
+            "volume": ev.packetSize,
+            "attackType": attack_type,
+            "securityDecision": decision,
+            "correlationId": corr_id
+        })
+        
+    return PaginatedResponse(success=True, total_count=count, data=data, message="Traffic logs retrieved.")
 
 @traffic_router.get("/packets", response_model=PaginatedResponse, summary="Inspect Packet Capture Stream")
 async def get_packet_stream(session_id: Optional[str] = None, user=Depends(require_role("Researcher"))):
@@ -267,6 +302,35 @@ federated_router = APIRouter(prefix="/federated", tags=["Federated Learning Coll
 async def list_federated_models(user=Depends(get_current_user_token)):
     """Retrieve historical collaborative AI training rounds and gradient parameter weights."""
     return PaginatedResponse(success=True, total_count=0, data=[], message="Federated learning orchestration scaffold ready.")
+
+@federated_router.get("/trigger_start", summary="Temp Start FL")
+async def trigger_start():
+    from app.federated.services.federated_training_service import federated_training_service
+    from app.federated.schemas.federated import FederatedConfig
+    config = FederatedConfig(
+        datasetId="CICIDS2017",
+        modelName="TrustChain_Federated_Model",
+        totalClients=5,
+        minimumClients=3,
+        trainingRounds=4,
+        participationRate=0.8,
+        partitionStrategy="IID",
+        randomSeed=42
+    )
+    job_id = await federated_training_service.start_federated_job(config)
+    return {"success": True, "jobId": job_id}
+
+@federated_router.get("/jobs_debug")
+async def jobs_debug():
+    from app.federated.repositories.federated_repository import federated_repository
+    jobs = []
+    coll = federated_repository._get_jobs_collection()
+    if coll is not None:
+        cursor = coll.find({})
+        async for doc in cursor:
+            doc.pop("_id", None)
+            jobs.append(doc)
+    return {"jobs": jobs}
 
 
 # ==============================================================================

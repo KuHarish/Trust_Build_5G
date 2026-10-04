@@ -12,6 +12,7 @@ class MLRepository:
         self._features_memory: Dict[str, dict] = {}
         self._models_memory: Dict[str, dict] = {}
         self._jobs_memory: Dict[str, dict] = {}
+        self._experiments_memory: Dict[str, dict] = {}
 
     def _get_datasets_collection(self):
         db = Database.get_db()
@@ -201,5 +202,49 @@ class MLRepository:
             except Exception as e:
                 logger.warning(f"Mongo list_jobs error ({e}).")
         return [TrainingJob(**doc) for doc in self._jobs_memory.values()]
+
+    # Experiments
+    def _get_experiments_collection(self):
+        db = Database.get_db()
+        return db["ml_experiments"] if db is not None else None
+
+    async def save_experiment(self, exp) -> Any:
+        data = exp.model_dump()
+        coll = self._get_experiments_collection()
+        if coll is not None:
+            try:
+                await coll.update_one({"experimentId": exp.experimentId}, {"$set": data}, upsert=True)
+            except Exception as e:
+                logger.warning(f"Mongo save_experiment error ({e}).")
+                self._experiments_memory[exp.experimentId] = data
+        else:
+            self._experiments_memory[exp.experimentId] = data
+        return exp
+
+    async def get_experiment(self, exp_id: str) -> Optional[Any]:
+        from app.ml.models.experiment import Experiment
+        coll = self._get_experiments_collection()
+        if coll is not None:
+            try:
+                doc = await coll.find_one({"experimentId": exp_id}, {"_id": 0})
+                if doc:
+                    return Experiment(**doc)
+            except Exception as e:
+                logger.warning(f"Mongo get_experiment error ({e}).")
+        
+        doc = self._experiments_memory.get(exp_id)
+        return Experiment(**doc) if doc else None
+
+    async def list_experiments(self) -> List[Any]:
+        from app.ml.models.experiment import Experiment
+        coll = self._get_experiments_collection()
+        if coll is not None:
+            try:
+                cursor = coll.find({}, {"_id": 0}).sort("completedAt", -1)
+                docs = await cursor.to_list(length=100)
+                return [Experiment(**doc) for doc in docs]
+            except Exception as e:
+                logger.warning(f"Mongo list_experiments error ({e}).")
+        return [Experiment(**doc) for doc in self._experiments_memory.values()]
 
 ml_repository = MLRepository()

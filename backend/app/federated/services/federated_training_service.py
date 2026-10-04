@@ -73,7 +73,7 @@ class FederatedTrainingService:
             
             # Determine global classes
             dataset = await ml_repository.get_dataset(config.datasetId)
-            target_col = dataset.labelColumn
+            target_col = dataset.labelColumn if dataset else "Label"
             # To get accurate classes, we can check the dataset stats or read the test set
             test_path = os.path.join(os.getcwd(), "data", "processed", f"{config.datasetId}_test.csv")
             test_df = pd.read_csv(test_path)

@@ -6,7 +6,7 @@ from app.ml.schemas.experiment import ExperimentCreateRequest, ComparisonRespons
 from app.ml.services.experiment_service import experiment_service
 from app.ml.repositories.ml_repository import ml_repository
 
-router = APIRouter(prefix="/experiments", tags=["Machine Learning Experiments"])
+router = APIRouter(prefix="", tags=["Machine Learning Experiments"])
 
 @router.post("", response_model=APIResponse)
 async def create_experiment(req: ExperimentCreateRequest):

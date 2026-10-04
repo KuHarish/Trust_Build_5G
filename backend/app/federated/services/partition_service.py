@@ -17,8 +17,29 @@ class PartitionService:
         Returns a list of file paths to the partitions.
         """
         train_path = os.path.join(PROCESSED_DIR, f"{dataset_id}_train.csv")
-        if not os.path.exists(train_path):
-            raise FileNotFoundError(f"Training dataset {train_path} not found.")
+        test_path = os.path.join(PROCESSED_DIR, f"{dataset_id}_test.csv")
+        
+        # Auto-generate synthetic dataset for simulation if missing
+        if not os.path.exists(train_path) or not os.path.exists(test_path):
+            os.makedirs(PROCESSED_DIR, exist_ok=True)
+            logger.info(f"Synthetic {dataset_id} generation started...")
+            
+            # Generate 500 rows for train, 100 for test
+            np.random.seed(seed)
+            features = ['avgLatency', 'avgBandwidth', 'avgSignalStrength', 'avgJitter', 'transmissionSuccessRate', 'avgPacketSize']
+            
+            def make_synthetic(n_rows):
+                df = pd.DataFrame(np.random.rand(n_rows, len(features)), columns=features)
+                # Ensure binary labels (0 or 1)
+                df['Label'] = np.random.randint(0, 2, size=n_rows)
+                return df
+                
+            train_df = make_synthetic(500)
+            test_df = make_synthetic(100)
+            
+            train_df.to_csv(train_path, index=False)
+            test_df.to_csv(test_path, index=False)
+            logger.info(f"Synthetic {dataset_id} datasets created at {PROCESSED_DIR}")
 
         df = pd.read_csv(train_path)
         np.random.seed(seed)
@@ -38,18 +59,29 @@ class PartitionService:
         partitions = []
         if strategy.upper() == "IID":
             # Simple uniform random split
-            chunks = np.array_split(df, num_clients)
+            chunk_size = len(df) // num_clients
+            chunks = [df.iloc[i:i+chunk_size] for i in range(0, len(df), chunk_size)]
+            if len(chunks) > num_clients:
+                # Merge the last chunk with the second to last if there's a remainder
+                last_chunk = chunks.pop()
+                chunks[-1] = pd.concat([chunks[-1], last_chunk])
             partitions = chunks
         else:
             # NON_IID: Sort by label, then split. This creates label skew among clients.
             df_sorted = df.sort_values(by=target_col).reset_index(drop=True)
-            chunks = np.array_split(df_sorted, num_clients)
+            chunk_size = len(df_sorted) // num_clients
+            chunks = [df_sorted.iloc[i:i+chunk_size] for i in range(0, len(df_sorted), chunk_size)]
+            if len(chunks) > num_clients:
+                last_chunk = chunks.pop()
+                chunks[-1] = pd.concat([chunks[-1], last_chunk])
             # Shuffle each chunk so local training isn't completely ordered
             partitions = [chunk.sample(frac=1, random_state=seed).reset_index(drop=True) for chunk in chunks]
 
         # Save partitions
         partition_paths = []
         for i, part_df in enumerate(partitions):
+            if isinstance(part_df, np.ndarray):
+                part_df = pd.DataFrame(part_df, columns=df.columns)
             path = os.path.join(PARTITIONS_DIR, f"{dataset_id}_client_{i}.csv")
             part_df.to_csv(path, index=False)
             partition_paths.append(path)
