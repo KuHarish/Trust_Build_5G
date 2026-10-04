@@ -13,13 +13,17 @@ export const authApi = {
 };
 
 export const nodesApi = {
-  list: (params?: Record<string, unknown>) => apiClient.get('/nodes', { params }),
-  register: (data: Record<string, unknown>) => apiClient.post('/nodes', data),
+  list: (params?: Record<string, unknown>) => apiClient.get('/nodes-sim', { params }),
+  register: (data: Record<string, unknown>) => apiClient.post('/nodes-sim', data),
 };
 
 export const trafficApi = {
   getLogs: (params?: Record<string, unknown>) => apiClient.get('/traffic/logs', { params }),
   getPackets: (params?: Record<string, unknown>) => apiClient.get('/traffic/packets', { params }),
+};
+
+export const communicationApi = {
+  getLiveFeed: () => apiClient.get('/communication/live'),
 };
 
 export const attacksApi = {
@@ -55,14 +59,27 @@ export const mlApi = {
   evaluate: (payload: Record<string, unknown>) => apiClient.post('/ml/evaluate', payload),
 };
 
+export const experimentsApi = {
+  listExperiments: () => apiClient.get('/ml/experiments'),
+  getExperiment: (expId: string) => apiClient.get(`/ml/experiments/${expId}`),
+  getComparison: (expId: string) => apiClient.get(`/ml/experiments/comparison/${expId}`),
+  createExperiment: (data: Record<string, unknown>) => apiClient.post('/ml/experiments', data),
+  runExperiment: (expId: string) => apiClient.post(`/ml/experiments/${expId}/run`),
+};
+
 export const federatedApi = {
-  getModels: () => apiClient.get('/federated/models'),
+  getStatus: () => apiClient.get('/ml/federated/status'),
+  getClients: () => apiClient.get('/ml/federated/clients'),
+  getRounds: (jobId?: string) => apiClient.get('/ml/federated/rounds', { params: { jobId } }),
+  startJob: (config: Record<string, unknown>) => apiClient.post('/ml/federated/start', config),
+  stopJob: () => apiClient.post('/ml/federated/stop'),
 };
 
 export const securityApi = {
   mitigate: (nodeId: string, action: string) => apiClient.post(`/security/mitigate/${nodeId}?action=${action}`),
   getAuditTimeline: (correlationId: string) => apiClient.get(`/security/audit/timeline/${correlationId}`),
   getNodeAuditHistory: (nodeId: string, limit = 50, skip = 0) => apiClient.get(`/security/audit/node/${nodeId}?limit=${limit}&skip=${skip}`),
+  getNodeStates: () => apiClient.get('/security/node-states'),
 };
 
 export const analyticsApi = {
