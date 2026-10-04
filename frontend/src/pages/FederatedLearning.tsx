@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/layouts/PageHeader';
-import { Server, Activity, CheckCircle, RefreshCw, XCircle, Search, Filter, Cpu, Layers } from 'lucide-react';
+import { Server, Activity, CheckCircle, RefreshCw, XCircle, Search, Filter, Cpu, Layers, Play } from 'lucide-react';
 import { federatedApi } from '@/api/endpoints';
 import { FederatedClientPanel, FederatedRoundVisualization, FederatedComparisonVisualization } from '@/components/federated';
 
@@ -59,10 +59,29 @@ export const FederatedLearning: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Federated Learning Collaborative Engine" 
-        subtitle="Decentralized model training across edge clients." 
-      />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <PageHeader 
+          title="Federated Learning Collaborative Engine" 
+          subtitle="Decentralized model training across edge clients." 
+        />
+        <button
+          onClick={() => federatedApi.startJob({
+            datasetId: "CICIDS2017",
+            modelName: "TrustChain_Federated_Model",
+            totalClients: 5,
+            minimumClients: 3,
+            trainingRounds: 4,
+            participationRate: 0.8,
+            partitionStrategy: "IID",
+            randomSeed: 42
+          })}
+          disabled={flStatus?.status === 'IN_PROGRESS' || flStatus?.status === 'RUNNING'}
+          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold font-mono tracking-wide transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Play className="w-4 h-4" />
+          <span>START FL ROUNDS</span>
+        </button>
+      </div>
 
       {/* OVERVIEW DASHBOARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

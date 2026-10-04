@@ -84,14 +84,27 @@ class FederatedTrainingService:
             classes = test_df[actual_target_col].unique()
             classes.sort()
             
-            # Register Clients in DB
+            # Register Clients in DB (Mapped to actual simulated nodes)
+            from app.simulator.repositories.node_repository import node_repository
+            sim_nodes = await node_repository.get_all()
+            active_nodes = [n for n in sim_nodes if str(n.status) == "ACTIVE"]
+            
             await federated_repository.clear_clients()
             for i, p_path in enumerate(partitions):
-                c_id = f"client-{i+1}"
                 part_df = pd.read_csv(p_path)
+                
+                # Pick an actual simulated node ID if available
+                if i < len(active_nodes):
+                    sim_node = active_nodes[i]
+                    c_id = sim_node.id
+                    c_name = f"{sim_node.nodeName} ({sim_node.nodeType})"
+                else:
+                    c_id = f"client-{i+1}"
+                    c_name = f"Edge Node {i+1}"
+                    
                 fc = FederatedClient(
                     clientId=c_id,
-                    clientName=f"Edge Node {i+1}",
+                    clientName=c_name,
                     status="IDLE",
                     localDatasetId=p_path,
                     sampleCount=len(part_df)
