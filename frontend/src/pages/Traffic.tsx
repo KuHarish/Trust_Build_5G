@@ -54,7 +54,7 @@ export const Traffic: React.FC = () => {
           </div>
           <div className="mt-auto">
             <div className="text-3xl font-bold text-slate-200">
-              {logsLoading ? '-' : totalEvents.toLocaleString()}
+              {logsLoading ? '-' : totalEvents === 0 ? <span className="text-sm font-mono text-slate-500">No simulation data available</span> : totalEvents.toLocaleString()}
             </div>
             <div className="text-xs text-slate-500 mt-1">Monitored netflows</div>
           </div>
@@ -67,7 +67,7 @@ export const Traffic: React.FC = () => {
           </div>
           <div className="mt-auto">
             <div className="text-3xl font-bold text-indigo-400">
-              {logsLoading ? '-' : totalVolume > 0 ? `${(totalVolume / 1024 / 1024).toFixed(2)} MB` : '0 MB'}
+              {logsLoading ? '-' : totalEvents === 0 ? <span className="text-sm font-mono text-slate-500">No data</span> : `${(totalVolume / 1024 / 1024).toFixed(2)} MB`}
             </div>
             <div className="text-xs text-slate-500 mt-1">Aggregated payload bytes</div>
           </div>
@@ -80,7 +80,7 @@ export const Traffic: React.FC = () => {
           </div>
           <div className="mt-auto">
             <div className="text-3xl font-bold text-amber-400">
-              {logsLoading ? '-' : anomaliesCount}
+              {logsLoading ? '-' : totalEvents === 0 ? <span className="text-sm font-mono text-slate-500">No data</span> : anomaliesCount}
             </div>
             <div className="text-xs text-slate-500 mt-1">Suspicious behavior flags</div>
           </div>
@@ -93,7 +93,7 @@ export const Traffic: React.FC = () => {
           </div>
           <div className="mt-auto">
             <div className="text-3xl font-bold text-rose-400">
-              {logsLoading ? '-' : attackRelatedCount}
+              {logsLoading ? '-' : totalEvents === 0 ? <span className="text-sm font-mono text-slate-500">No data</span> : attackRelatedCount}
             </div>
             <div className="text-xs text-slate-500 mt-1">Correlated security threats</div>
           </div>

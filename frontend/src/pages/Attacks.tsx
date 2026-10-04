@@ -50,11 +50,11 @@ export const Attacks: React.FC = () => {
 
   const getSeverityColor = (severity: string) => {
     switch (severity?.toUpperCase()) {
-      case 'CRITICAL': return 'bg-rose-900 text-rose-200 border-rose-500';
-      case 'HIGH': return 'bg-orange-900 text-orange-200 border-orange-500';
-      case 'MEDIUM': return 'bg-amber-900 text-amber-200 border-amber-500';
-      case 'LOW': return 'bg-emerald-900 text-emerald-200 border-emerald-500';
-      default: return 'bg-slate-800 text-slate-200 border-slate-500';
+      case 'CRITICAL': return 'bg-rose-600 text-white border-rose-700 font-bold';
+      case 'HIGH': return 'bg-orange-600 text-white border-orange-700 font-bold';
+      case 'MEDIUM': return 'bg-amber-500 text-slate-900 border-amber-600 font-bold';
+      case 'LOW': return 'bg-emerald-600 text-white border-emerald-700 font-bold';
+      default: return 'bg-slate-700 text-white border-slate-800 font-bold';
     }
   };
 

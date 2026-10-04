@@ -40,14 +40,8 @@ export const Analytics: React.FC = () => {
   // Removed unimplemented trust endpoint call
 
   // Processing Summary
-  const summary = summaryRes?.data || {
-    network_health_score: 0,
-    total_monitored_nodes: 0,
-    total_security_events: 0,
-    mitigated_attacks_24h: 0,
-    traffic_events_sampled: 0,
-    blockchain_sealed_transactions: 0
-  };
+  const summary = summaryRes?.data;
+  const isDataEmpty = !summary;
 
   // Processing Attacks for Charts
   const attacks = attacksRes?.data || [];
@@ -92,11 +86,11 @@ export const Analytics: React.FC = () => {
 
   const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
   const SEVERITY_COLORS: Record<string, string> = {
-    'CRITICAL': '#f43f5e',
-    'HIGH': '#f97316',
-    'MEDIUM': '#eab308',
-    'LOW': '#10b981',
-    'UNKNOWN': '#64748b'
+    'CRITICAL': '#e11d48',
+    'HIGH': '#ea580c',
+    'MEDIUM': '#ca8a04',
+    'LOW': '#059669',
+    'UNKNOWN': '#475569'
   };
 
   return (
@@ -127,12 +121,25 @@ export const Analytics: React.FC = () => {
         <>
           {/* Top KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <KpiCard title="Network Health" value={`${summary.network_health_score}%`} icon={Activity} color="text-emerald-400" />
-            <KpiCard title="Active Nodes" value={summary.total_monitored_nodes} icon={Network} color="text-indigo-400" />
-            <KpiCard title="Security Events" value={summary.total_security_events} icon={ShieldAlert} color="text-rose-400" />
-            <KpiCard title="Mitigations" value={summary.mitigated_attacks_24h} icon={Shield} color="text-orange-400" />
-            <KpiCard title="Traffic Events" value={summary.traffic_events_sampled} icon={BarChart3} color="text-sky-400" />
-            <KpiCard title="Blockchain Tx" value={summary.blockchain_sealed_transactions} icon={Database} color="text-fuchsia-400" />
+            {isDataEmpty ? (
+              <>
+                <EmptyKpi title="Network Health" icon={Activity} color="text-emerald-400" />
+                <EmptyKpi title="Active Nodes" icon={Network} color="text-indigo-400" />
+                <EmptyKpi title="Security Events" icon={ShieldAlert} color="text-rose-400" />
+                <EmptyKpi title="Mitigations" icon={Shield} color="text-orange-400" />
+                <EmptyKpi title="Traffic Events" icon={BarChart3} color="text-sky-400" />
+                <EmptyKpi title="Blockchain Tx" icon={Database} color="text-fuchsia-400" />
+              </>
+            ) : (
+              <>
+                <KpiCard title="Network Health" value={`${summary.network_health_score}%`} icon={Activity} color="text-emerald-400" />
+                <KpiCard title="Active Nodes" value={summary.total_monitored_nodes} icon={Network} color="text-indigo-400" />
+                <KpiCard title="Security Events" value={summary.total_security_events} icon={ShieldAlert} color="text-rose-400" />
+                <KpiCard title="Mitigations" value={summary.mitigated_attacks_24h} icon={Shield} color="text-orange-400" />
+                <KpiCard title="Traffic Events" value={summary.traffic_events_sampled} icon={BarChart3} color="text-sky-400" />
+                <KpiCard title="Blockchain Tx" value={summary.blockchain_sealed_transactions} icon={Database} color="text-fuchsia-400" />
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -265,5 +272,15 @@ const KpiCard = ({ title, value, icon: Icon, color }: { title: string, value: st
       <Icon className={`w-4 h-4 ${color}`} />
     </div>
     <div className={`text-2xl font-bold ${color}`}>{value}</div>
+  </div>
+);
+
+const EmptyKpi = ({ title, icon: Icon, color }: { title: string, icon: any, color: string }) => (
+  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between h-28 opacity-70">
+    <div className="flex items-center justify-between">
+      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</div>
+      <Icon className={`w-4 h-4 ${color}`} />
+    </div>
+    <div className="text-[10px] text-slate-500 font-mono mt-2">No simulation data available</div>
   </div>
 );
