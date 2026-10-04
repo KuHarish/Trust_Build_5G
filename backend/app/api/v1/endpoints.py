@@ -351,13 +351,44 @@ analytics_router = APIRouter(prefix="/analytics", tags=["Platform Analytics & Re
 
 @analytics_router.get("/summary", response_model=APIResponse, summary="Fetch Executive Cybersecurity Dashboard Metrics")
 async def get_analytics_summary(time_window: str = "24h", user=Depends(get_current_user_token)):
-    """Retrieve executive KPIs, simulated packet volumes, attack mitigations, and network trust indexes for dashboard plotting."""
-    mock_metrics = {
-        "network_health_score": 97.4,
-        "total_monitored_nodes": 42,
-        "active_threat_alarms": 2,
-        "mitigated_attacks_24h": 128,
-        "average_network_latency_ms": 1.45,
-        "blockchain_sealed_transactions": 8450
-    }
-    return APIResponse(success=True, message="Analytics summary retrieved.", data=mock_metrics)
+    from app.security.repositories.security_repository import security_repository
+    from app.edge.repositories.edge_repository import edge_repository
+    from app.blockchain.services.blockchain_service import blockchain_service
+    
+    # Simple real aggregation for overview
+    try:
+        # Count total attacks (decisions)
+        recent_decisions = await security_repository.get_recent_decisions(limit=1000)
+        total_security_events = len(recent_decisions)
+        mitigated_attacks = sum(1 for d in recent_decisions if d.decision in ["BLOCK", "QUARANTINE", "RATE_LIMIT"])
+        
+        # Count active nodes
+        from app.nodes.repositories.node_repository import node_repository
+        nodes = await node_repository.list_nodes()
+        total_monitored_nodes = len(nodes)
+        
+        # Traffic events count
+        traffic_events = await edge_repository.list_events(limit=1000)
+        
+        # Blockchain events
+        blockchain_sealed_transactions = blockchain_service.chain.index if hasattr(blockchain_service.chain, 'index') else len(blockchain_service.chain)
+
+        real_metrics = {
+            "network_health_score": 97.4, # Hard to calculate a single score, keeping as fallback or compute average trust
+            "total_monitored_nodes": total_monitored_nodes,
+            "total_security_events": total_security_events,
+            "mitigated_attacks_24h": mitigated_attacks,
+            "traffic_events_sampled": len(traffic_events),
+            "blockchain_sealed_transactions": blockchain_sealed_transactions
+        }
+        
+        # Compute network health score from Trust
+        from app.trust.services.trust_service import trust_service
+        trust_stats = await trust_service.get_system_statistics()
+        if trust_stats and "averageTrust" in trust_stats:
+            real_metrics["network_health_score"] = round(trust_stats["averageTrust"] * 100, 1)
+
+        return APIResponse(success=True, message="Analytics summary retrieved.", data=real_metrics)
+    except Exception as e:
+        logger.error(f"Error fetching analytics: {e}")
+        return APIResponse(success=False, message=str(e))
