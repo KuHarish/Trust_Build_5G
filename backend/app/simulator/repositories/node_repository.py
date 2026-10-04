@@ -63,7 +63,13 @@ class NodeRepository:
             try:
                 cursor = collection.find({})
                 docs = await cursor.to_list(length=2000)
-                return [SimulationNode.model_validate(doc) for doc in docs]
+                nodes = []
+                for doc in docs:
+                    try:
+                        nodes.append(SimulationNode.model_validate(doc))
+                    except Exception as ve:
+                        logger.warning(f"Skipping invalid legacy node doc: {doc.get('nodeName', 'Unknown')}. Error: {str(ve).splitlines()[0]}")
+                return nodes
             except Exception as e:
                 logger.warning(f"MongoDB get_all failed ({str(e)}), reverting to memory store.")
 

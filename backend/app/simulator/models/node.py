@@ -17,7 +17,8 @@ class SimulationNodeType(str, Enum):
     GATEWAY = "Gateway Node"
     AGGREGATION = "Aggregation Node"
     CORE_SERVER = "Core / Server Node"
-
+    LEGACY_GATEWAY = "Gateway"
+    LEGACY_EDGE_DEVICE = "Edge Device"
 
 class SimulationNodeStatus(str, Enum):
     """Node operational states in simulated network landscape."""
@@ -27,6 +28,7 @@ class SimulationNodeStatus(str, Enum):
     OFFLINE = "OFFLINE"
     MAINTENANCE = "MAINTENANCE"
     BUSY = "BUSY"
+    SLEEPING = "SLEEPING"
 
 
 class SimulationNodeRelationship(BaseModel):
