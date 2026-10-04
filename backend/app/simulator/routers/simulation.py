@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
-from app.api.v1.dependencies import get_current_user_token
-from app.schemas.api_response import APIResponse
+from app.core.dependencies import get_current_user_token
+from app.schemas.common import APIResponse
 from app.simulator.services.simulation_service import simulation_service
 from app.simulator.repositories.node_repository import node_repository
 from app.simulator.models.simulation import SimulationStatusResponse, SimulationEvent

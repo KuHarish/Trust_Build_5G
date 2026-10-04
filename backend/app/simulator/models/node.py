@@ -23,8 +23,10 @@ class SimulationNodeStatus(str, Enum):
     """Node operational states in simulated network landscape."""
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
+    ONLINE = "ONLINE"
     OFFLINE = "OFFLINE"
     MAINTENANCE = "MAINTENANCE"
+    BUSY = "BUSY"
 
 
 class SimulationNodeRelationship(BaseModel):
