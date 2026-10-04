@@ -23,6 +23,11 @@ class EdgeSimulationService:
         self._interval_sec = 4.0
 
     async def start(self):
+        from app.core.config import settings
+        if settings.ENABLE_NETWORK_SIMULATION:
+            logger.info("Module 2 Edge Simulation bypassed (Phase 8 Advanced Simulation Engine is enabled).")
+            return
+            
         if self._is_running:
             return
         self._is_running = True

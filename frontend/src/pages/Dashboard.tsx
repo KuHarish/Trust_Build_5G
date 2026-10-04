@@ -11,6 +11,7 @@ import {
   SimulationControlConsole,
   DashboardCharts,
 } from '@/components/dashboard';
+import { AttackControlPanel } from '@/components/dashboard/AttackControlPanel';
 import { NetworkTopologyView } from '@/components/network/NetworkTopologyView';
 import { dashboardService } from '@/services/dashboardService';
 import { Button } from '@/components/common';
@@ -251,6 +252,7 @@ export const Dashboard: React.FC = () => {
       {activeTab === 'controls' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <SimulationControlConsole status={liveData.simulationStatus} />
+          <AttackControlPanel nodes={filteredNodes} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <NetworkHealthIndicator health={liveData.health} />
             <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 flex flex-col justify-center space-y-3 font-mono text-xs text-slate-400">

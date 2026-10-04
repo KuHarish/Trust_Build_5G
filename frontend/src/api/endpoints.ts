@@ -95,4 +95,5 @@ export const simulationApi = {
   reset: () => apiClient.post('/simulation/reset'),
   getNodes: () => apiClient.get('/simulation/nodes'),
   getEvents: () => apiClient.get('/simulation/events'),
+  triggerAttack: (data: Record<string, unknown>) => apiClient.post('/simulation/attack', data),
 };

@@ -14,6 +14,7 @@ from app.simulator.models.simulation import (
     SimulationStatusResponse
 )
 from app.simulator.services.topology_generator import generate_topology
+from app.simulator.services.traffic_generator import traffic_generator
 
 logger = logging.getLogger("trustchain.simulator.engine")
 
@@ -31,6 +32,7 @@ class SimulationService:
         self._simulation_time: float = 0.0
         self._events: List[SimulationEvent] = []
         self._simulation_id: str = "sim_default"
+        self._active_attacks: dict = {}
 
     def _add_event(self, event_type: SimulationEventType, metadata: dict = None, node_id: str = None):
         event = SimulationEvent(
@@ -154,6 +156,8 @@ class SimulationService:
                     # Advance simulation clock
                     self._simulation_time += self._interval_seconds * self._speed
                     await self._update_simulation_telemetry()
+                    await self._generate_traffic()
+                    self._cleanup_attacks()
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -217,6 +221,47 @@ class SimulationService:
 
     async def stop(self) -> None:
         await self.stopSimulation()
+
+    async def trigger_attack(self, attacker_node_id: str, attack_type: str, intensity: str, duration: int) -> dict:
+        if not settings.ENABLE_NETWORK_SIMULATION or self._state != SimulationState.RUNNING:
+            raise ValueError("Simulation is not running.")
+            
+        import uuid
+        attack_event_id = str(uuid.uuid4())
+        
+        self._active_attacks[attacker_node_id] = {
+            "attackEventId": attack_event_id,
+            "attackerNodeId": attacker_node_id,
+            "attackType": attack_type,
+            "intensity": intensity,
+            "duration": duration,
+            "startTime": self._simulation_time
+        }
+        
+        self._add_event(SimulationEventType.SIMULATION_STARTED, {
+            "message": f"Attack {attack_type} triggered from compromised node {attacker_node_id}",
+            "attackEventId": attack_event_id,
+            "intensity": intensity
+        }, node_id=attacker_node_id)
+        
+        return self._active_attacks[attacker_node_id]
+
+    async def _generate_traffic(self) -> None:
+        nodes = await node_repository.get_all()
+        await traffic_generator.generate_tick(nodes, self._active_attacks, self._simulation_id, self._speed)
+
+    def _cleanup_attacks(self) -> None:
+        expired = []
+        for node_id, attack in self._active_attacks.items():
+            if (self._simulation_time - attack["startTime"]) >= attack["duration"]:
+                expired.append(node_id)
+                
+        for node_id in expired:
+            attack = self._active_attacks.pop(node_id)
+            self._add_event(SimulationEventType.SIMULATION_STOPPED, {
+                "message": f"Attack {attack['attackType']} ended on node {node_id}",
+                "attackEventId": attack["attackEventId"]
+            }, node_id=node_id)
 
 
 # Instantiate global simulation service engine

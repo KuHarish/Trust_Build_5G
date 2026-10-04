@@ -26,6 +26,11 @@ class CommunicationSimulationService:
 
     async def start(self):
         """Ignites the background automated communication traffic daemon."""
+        from app.core.config import settings
+        if settings.ENABLE_NETWORK_SIMULATION:
+            logger.info("Module 3 Communication Engine bypassed (Phase 8 Advanced Simulation Engine is enabled).")
+            return
+            
         if not self.running:
             self.running = True
             self._task = asyncio.create_task(self._simulation_loop())

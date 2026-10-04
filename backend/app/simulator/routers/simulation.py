@@ -44,6 +44,26 @@ async def reset_simulation(user=Depends(get_current_user_token)):
     status_data = await simulation_service.getSimulationStatusAsync()
     return APIResponse(success=True, message="Simulation reset", data=status_data.model_dump())
 
+from pydantic import BaseModel
+class AttackTriggerRequest(BaseModel):
+    attackerNodeId: str
+    attackType: str = "DDoS"
+    intensity: str = "MEDIUM"
+    duration: int = 30
+
+@router.post("/attack", response_model=APIResponse, summary="Trigger manual attack on a node")
+async def trigger_simulation_attack(req: AttackTriggerRequest, user=Depends(get_current_user_token)):
+    try:
+        attack = await simulation_service.trigger_attack(
+            attacker_node_id=req.attackerNodeId,
+            attack_type=req.attackType,
+            intensity=req.intensity,
+            duration=req.duration
+        )
+        return APIResponse(success=True, message=f"Attack triggered on {req.attackerNodeId}", data=attack)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/nodes", response_model=APIResponse, summary="Get all simulation nodes")
 async def get_simulation_nodes(user=Depends(get_current_user_token)):
     nodes = await node_repository.get_all()
