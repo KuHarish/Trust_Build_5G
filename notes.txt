@@ -1,5 +1,0 @@
-Start the Vite development server (npm run dev) and FastAPI Uvicorn server (python -m uvicorn app.main:app --reload --port 8000).
-Verify visual aesthetics: Dark mode cybersecurity themes, glassmorphism, responsive navigation collapse, and toast notifications.
-Test Authentication Flow: Switch roles in mock login (Administrator, Researcher, Viewer) and observe permission badges.
-Navigate across all sidebar routes (Dashboard through Settings) to verify clean rendering of layout components and placeholder states.
-Probe Backend APIs: Check /api/v1/health and /api/v1/version responses and examine interactive Swagger documentation at /docs.
