@@ -28,13 +28,13 @@ export const AttackControlPanel: React.FC<Props> = ({ nodes }) => {
       );
     },
     onError: (err: any) => {
-      addNotification('Attack Launch Failed', err.message || 'Unknown error occurred', 'error');
+      addNotification('Attack Launch Failed', err.message || 'Unknown error occurred', 'danger');
     }
   });
 
   const handleLaunchAttack = () => {
     if (!targetNode) {
-      addNotification('Target Required', 'Please select a compromised node for the attack scenario.', 'error');
+      addNotification('Target Required', 'Please select a compromised node for the attack scenario.', 'danger');
       return;
     }
     

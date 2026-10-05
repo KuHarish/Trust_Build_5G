@@ -1,19 +1,20 @@
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   ReactFlow,
   Controls,
   Background,
-  MiniMap,
   useNodesState,
   useEdgesState,
   MarkerType,
   Panel,
   Handle,
   Position,
-  NodeProps
+  NodeProps,
+  Node,
+  Edge
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Server, Activity, Shield, ShieldAlert, Cpu, Smartphone, Wifi, RadioTower } from 'lucide-react';
+import { Server, Activity, Cpu, Smartphone, Wifi, RadioTower, ShieldAlert } from 'lucide-react';
 
 interface EnrichedNode {
   _id: string;
@@ -133,8 +134,8 @@ const nodeTypes = {
 // MAIN TOPOLOGY COMPONENT
 // ---------------------------------------------------------------------------
 export const NetworkTopology: React.FC<NetworkTopologyProps> = ({ nodes, sessions, selectedNodeId, onNodeSelect }) => {
-  const [rfNodes, setNodes, onNodesChange] = useNodesState([]);
-  const [rfEdges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [rfNodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [rfEdges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   // Transform raw data into React Flow format
   useEffect(() => {
@@ -206,7 +207,7 @@ export const NetworkTopology: React.FC<NetworkTopologyProps> = ({ nodes, session
     setEdges(flowEdges);
   }, [nodes, sessions, setNodes, setEdges, selectedNodeId]);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: any) => {
     onNodeSelect(node.id);
   }, [onNodeSelect]);
 
