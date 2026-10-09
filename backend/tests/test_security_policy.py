@@ -1,6 +1,7 @@
 import pytest
 from typing import Dict, Any
 
+from app.database.client import Database
 from app.security.models.security_policy import SecurityPolicy, PolicyRule, PolicyCondition
 from app.security.services.policy_validator import policy_validator
 from app.security.services.security_policy_service import security_policy_service
@@ -63,6 +64,20 @@ def test_policy_validator_contradiction(base_policy):
     result = policy_validator.validate(base_policy)
     assert result["valid"] is False
     assert any("Contradictory rules detected" in e["message"] for e in result["errors"])
+
+@pytest.mark.asyncio
+async def test_policy_service_works_without_mongo(base_policy):
+    original_db = Database.db
+    Database.db = None
+    try:
+        await security_repository.delete_all_policies()
+        await security_policy_service.initialize_default_policies()
+        policies = await security_repository.get_active_policies()
+        assert len(policies) == 1
+        assert policies[0].name == "TrustChain Baseline Policy"
+    finally:
+        Database.db = original_db
+        await security_repository.delete_all_policies()
 
 @pytest.mark.asyncio
 async def test_policy_service_evaluate_match(base_policy):
