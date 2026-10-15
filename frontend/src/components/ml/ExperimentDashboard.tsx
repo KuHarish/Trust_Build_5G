@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
-import { mlApi } from '../../api/mlApi';
 import { experimentApi } from '../../api/experimentApi';
-import { Activity, Plus, FileText, CheckCircle, Clock } from 'lucide-react';
+import { mlModelApi } from '../../api/mlModelApi';
+import { Activity, Plus, FileText, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const ExperimentDashboard: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedExpId, setSelectedExpId] = useState<string | null>(null);
+  const [experimentError, setExperimentError] = useState<string | null>(null);
 
   const { data: expsData, isLoading: expsLoading } = useQuery({
     queryKey: ['experiments'],
@@ -22,19 +23,23 @@ export const ExperimentDashboard: React.FC = () => {
     enabled: !!selectedExpId
   });
 
-  const { data: datasetsRes } = useQuery({
-    queryKey: ['datasets'],
-    queryFn: () => mlApi.getDatasets().then(res => res.data)
+  const { data: modelsRes } = useQuery({
+    queryKey: ['ml-models'],
+    queryFn: () => mlModelApi.getModels().then(res => res.data)
   });
   
-  const datasets = datasetsRes?.data || [];
+  const models = modelsRes?.data || [];
   const experiments = expsData?.data || [];
 
   const createExpMutation = useMutation({
     mutationFn: (data: any) => experimentApi.createExperiment(data).then(res => res.data),
     onSuccess: (data) => {
+      setExperimentError(null);
       queryClient.invalidateQueries({ queryKey: ['experiments'] });
       runExpMutation.mutate(data.data.experimentId);
+    },
+    onError: (err: any) => {
+      setExperimentError(err.response?.data?.detail || err.message || 'Failed to create experiment');
     }
   });
 
@@ -46,13 +51,32 @@ export const ExperimentDashboard: React.FC = () => {
   });
 
   const handleCreateMockExperiment = () => {
-    // Ideally we would select models from dropdown, but we will use dummy logic to find a centralized and federated model for a dataset
+    setExperimentError(null);
+    let centModel = models.find((m: any) => m.algorithm === 'RandomForest' || m.trainingType !== 'FEDERATED');
+    let fedModel = models.find((m: any) => m.trainingType === 'FEDERATED');
+    
+    // If we have at least 2 models, use them
+    if ((!centModel || !fedModel) && models.length >= 2) {
+      centModel = models[0];
+      fedModel = models[1];
+    }
+
+    if (!centModel || !fedModel) {
+      setExperimentError("To run comparative analysis, train at least two models first (e.g., Centralized in 'Model Training' and Federated in 'Federated Learning').");
+      return;
+    }
+
+    if (centModel.datasetId !== fedModel.datasetId) {
+      setExperimentError(`Models must be trained on the same dataset (Model 1: ${centModel.datasetId.substring(0, 8)}..., Model 2: ${fedModel.datasetId.substring(0, 8)}...).`);
+      return;
+    }
+
     createExpMutation.mutate({
-      name: "Comparative Analysis " + Math.floor(Math.random() * 100),
-      description: "Comparing RF vs FedAvg",
-      datasetId: datasets.length > 0 ? datasets[0].datasetId : "N/A",
-      centralizedModelId: "centralized-model", // Replace with real dropdown select
-      federatedModelId: "federated-model" // Replace with real dropdown select
+      name: `Comparative Analysis (${centModel.modelName} vs ${fedModel.modelName})`,
+      description: "Automated benchmark performance comparison",
+      datasetId: centModel.datasetId,
+      centralizedModelId: centModel.modelId,
+      federatedModelId: fedModel.modelId
     });
   };
 
@@ -93,6 +117,24 @@ export const ExperimentDashboard: React.FC = () => {
           <Plus className="w-4 h-4" /> New Experiment
         </Button>
       </div>
+
+      {experimentError && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-300 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold text-amber-200">Comparative Experiment Prerequisite</div>
+              <div className="text-xs text-amber-300/90 mt-0.5">{experimentError}</div>
+            </div>
+          </div>
+          <button 
+            onClick={() => setExperimentError(null)}
+            className="text-amber-400/60 hover:text-amber-200 text-xs font-mono"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-1 space-y-4 max-h-[800px] overflow-y-auto pr-2">

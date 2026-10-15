@@ -13,6 +13,50 @@ class MLRepository:
         self._models_memory: Dict[str, dict] = {}
         self._jobs_memory: Dict[str, dict] = {}
         self._experiments_memory: Dict[str, dict] = {}
+        self._seed_from_disk()
+
+    def _seed_from_disk(self):
+        try:
+            import os, json
+            processed_dir = os.path.join(os.getcwd(), "data", "processed")
+            seed_id = "2eb9d308-b4a2-4763-9873-d4cdc15d61b2"
+            train_file = os.path.join(processed_dir, f"{seed_id}_train.csv")
+            if os.path.exists(train_file):
+                csv_path = os.path.join(os.getcwd(), "datasets", "cicids2017", "MachineLearningCVE", "Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv")
+                self._datasets_memory[seed_id] = {
+                    "datasetId": seed_id,
+                    "name": "CICIDS2017-DDoS",
+                    "version": "1.0",
+                    "description": "Intrusion Detection Evaluation Dataset (Friday DDoS - Preprocessed)",
+                    "source": "Canadian Institute for Cybersecurity",
+                    "filePath": csv_path,
+                    "format": "CSV",
+                    "labelColumn": " Label",
+                    "status": "READY",
+                    "rowCount": 225745,
+                    "featureCount": 78,
+                    "classCount": 2,
+                    "createdAt": "2026-10-15T00:00:00Z"
+                }
+                logger.info(f"Seeded preprocessed dataset {seed_id} into memory.")
+
+            models_dir = os.path.join(os.getcwd(), "models", "random_forest")
+            if os.path.exists(models_dir):
+                for model_entry in os.listdir(models_dir):
+                    meta_path = os.path.join(models_dir, model_entry, "metadata.json")
+                    if os.path.exists(meta_path):
+                        with open(meta_path, "r", encoding="utf-8") as f:
+                            meta = json.load(f)
+                            m_id = meta.get("modelId", model_entry)
+                            self._models_memory[m_id] = meta
+                            logger.info(f"Loaded existing model {meta.get('modelName', m_id)} ({m_id}) into memory.")
+                
+                has_active = any(m.get("isActive") is True for m in self._models_memory.values())
+                if not has_active and self._models_memory:
+                    last_id = list(self._models_memory.keys())[-1]
+                    self._models_memory[last_id]["isActive"] = True
+        except Exception as e:
+            logger.warning(f"Error seeding ML repository from disk: {e}")
 
     def _get_datasets_collection(self):
         db = Database.get_db()

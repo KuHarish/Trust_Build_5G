@@ -128,6 +128,8 @@ class ModelTrainingService:
             params = dict(req.parameters)
             if params.get("class_weight") == "None" or not params.get("class_weight"):
                 params["class_weight"] = None
+            if "n_jobs" not in params:
+                params["n_jobs"] = -1
                 
             model = RandomForestClassifier(**params)
             
