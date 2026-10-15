@@ -12,19 +12,20 @@ export const useLiveDashboardStream = () => {
   const [connectionType, setConnectionType] = useState<'websocket' | 'sse' | 'polling' | 'connecting'>('connecting');
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Initial fetch and automatic polling fallback via React Query
+  // Continuous live synchronization: automatic polling fallback via React Query every 2.5s
   const fallbackQuery = useQuery({
     queryKey: ['dashboard-live-feed'],
     queryFn: () => dashboardService.getLiveFeed(),
-    refetchInterval: connectionType === 'polling' ? 3000 : false,
-    staleTime: 2000,
+    refetchInterval: 2500,
+    refetchIntervalInBackground: true,
+    staleTime: 1500,
   });
 
   useEffect(() => {
-    if (fallbackQuery.data && (!liveData || connectionType === 'polling')) {
+    if (fallbackQuery.data) {
       setLiveData(fallbackQuery.data);
     }
-  }, [fallbackQuery.data, liveData, connectionType]);
+  }, [fallbackQuery.data]);
 
   const establishWebSocket = useCallback(() => {
     const wsUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000')
@@ -83,7 +84,7 @@ export const useDashboardStatistics = () => {
   return useQuery({
     queryKey: ['dashboard-statistics-trends'],
     queryFn: () => dashboardService.getStatistics(),
-    refetchInterval: 5000, // Refetch chart series every 5s
+    refetchInterval: 3000, // Refetch live chart oscillations every 3s
   });
 };
 
