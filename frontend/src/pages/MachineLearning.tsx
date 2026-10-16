@@ -20,6 +20,7 @@ export const MachineLearning: React.FC = () => {
   
   // Datasets state
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [trainingDatasetId, setTrainingDatasetId] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   
   const { data: datasetsRes, isLoading: datasetsLoading } = useQuery({
@@ -30,10 +31,20 @@ export const MachineLearning: React.FC = () => {
   const datasets = datasetsRes?.data || [];
   const selectedDataset = datasets.find((d: any) => d.datasetId === selectedDatasetId);
 
+  // Auto-select first dataset if none selected
+  React.useEffect(() => {
+    if (!selectedDatasetId && datasets.length > 0) {
+      setSelectedDatasetId(datasets[0].datasetId);
+    }
+  }, [datasets, selectedDatasetId]);
+
   const registerMutation = useMutation({
     mutationFn: (data: any) => mlApi.registerDataset(data).then(res => res.data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['ml-datasets'] });
+      if (res?.data?.datasetId) {
+        setSelectedDatasetId(res.data.datasetId);
+      }
     }
   });
 
@@ -183,15 +194,64 @@ export const MachineLearning: React.FC = () => {
                         <h2 className="text-xl font-bold text-white">{selectedDataset.name} <span className="text-sm font-normal text-slate-500">v{selectedDataset.version}</span></h2>
                         <div className="text-xs font-mono text-slate-400 mt-1">Source: {selectedDataset.filePath}</div>
                       </div>
-                      <Button 
-                        onClick={handleProcess} 
-                        disabled={processMutation.isPending || selectedDataset.status === 'PROCESSING'}
-                        className="bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        <Play className="w-4 h-4 mr-2" /> 
-                        {processMutation.isPending ? 'Processing...' : 'Run ML Pipeline'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {selectedDataset.status === 'READY' && (
+                          <Button 
+                            onClick={() => {
+                              setTrainingDatasetId(selectedDataset.datasetId);
+                              setActiveTab('TRAINING');
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2 text-white font-medium"
+                          >
+                            <Cpu className="w-4 h-4" /> 
+                            Train Model
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={handleProcess} 
+                          disabled={processMutation.isPending || selectedDataset.status === 'PROCESSING'}
+                          className={selectedDataset.status === 'READY' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}
+                        >
+                          <Play className="w-4 h-4 mr-2" /> 
+                          {processMutation.isPending ? 'Processing...' : selectedDataset.status === 'READY' ? 'Re-run Pipeline' : 'Run ML Pipeline'}
+                        </Button>
+                      </div>
                     </div>
+
+                    {selectedDataset.status === 'READY' && (
+                      <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-400 text-sm">
+                          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>Dataset preprocessed & ready. You can now train a model.</span>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            setTrainingDatasetId(selectedDataset.datasetId);
+                            setActiveTab('TRAINING');
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 flex items-center gap-1.5"
+                        >
+                          <Cpu className="w-3.5 h-3.5" /> Start Training
+                        </Button>
+                      </div>
+                    )}
+
+                    {selectedDataset.status === 'UPLOADED' && (
+                      <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400 text-sm">
+                          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                          <span>Dataset uploaded. <strong>Run the ML Pipeline</strong> to generate training/validation splits before training models.</span>
+                        </div>
+                        <Button 
+                          onClick={handleProcess}
+                          disabled={processMutation.isPending}
+                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 flex items-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5" />
+                          {processMutation.isPending ? 'Processing...' : 'Preprocess Dataset'}
+                        </Button>
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-3 gap-4 font-mono text-sm mb-6">
                       <div className="p-3 bg-slate-950/50 rounded-lg border border-slate-800">
@@ -223,7 +283,10 @@ export const MachineLearning: React.FC = () => {
       )}
 
       {activeTab === 'TRAINING' && (
-        <ModelTrainingView />
+        <ModelTrainingView 
+          initialDatasetId={trainingDatasetId || selectedDatasetId || undefined}
+          onNavigateToDatasets={() => setActiveTab('DATASETS')}
+        />
       )}
 
       {activeTab === 'REGISTRY' && (

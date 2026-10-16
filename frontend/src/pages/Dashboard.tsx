@@ -57,13 +57,21 @@ export const Dashboard: React.FC = () => {
   // Filter topology nodes based on UI selections
   const allNodes: SimulationNode[] = nodesData?.data || [];
   const filteredNodes = allNodes.filter((n: SimulationNode) => {
-    if (filterNodeType !== 'ALL' && n.nodeType !== filterNodeType) return false;
+    if (filterNodeType !== 'ALL') {
+      const target = filterNodeType.toLowerCase();
+      const actual = (n.nodeType || '').toLowerCase();
+      if (!actual.includes(target) && !target.includes(actual)) return false;
+    }
     return true;
   });
 
   const allSessions: CommunicationSession[] = sessionsData?.data || [];
   const filteredSessions = allSessions.filter((s: CommunicationSession) => {
-    if (filterProtocol !== 'ALL' && s.protocol !== filterProtocol) return false;
+    if (filterProtocol !== 'ALL') {
+      const target = filterProtocol.toUpperCase();
+      const actual = String(s.protocol || '').toUpperCase();
+      if (!actual.includes(target)) return false;
+    }
     return true;
   });
 
@@ -209,9 +217,11 @@ export const Dashboard: React.FC = () => {
                 className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200"
               >
                 <option value="ALL">Node Type: ALL</option>
-                <option value="Gateway">Gateways</option>
-                <option value="IoT Sensor">IoT Sensors</option>
-                <option value="Medical Device">Medical Devices</option>
+                <option value="Core">5G Core / Servers</option>
+                <option value="Aggregation">Aggregation Routers</option>
+                <option value="Gateway">5G Gateways & gNodeB</option>
+                <option value="Processing">Edge MEC Compute</option>
+                <option value="IoT">IoT Sensors & Field Devices</option>
               </select>
 
               <select
@@ -220,7 +230,7 @@ export const Dashboard: React.FC = () => {
                 className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200"
               >
                 <option value="ALL">Protocol: ALL</option>
-                <option value="TCP">TCP</option>
+                <option value="TCP">TCP / GTP-U</option>
                 <option value="UDP">UDP</option>
                 <option value="HTTPS">HTTPS</option>
                 <option value="MQTT">MQTT</option>
@@ -238,6 +248,7 @@ export const Dashboard: React.FC = () => {
             activeSessions={filteredSessions}
             isLoading={isLoading}
             onRefresh={handleRefresh}
+            trustProfiles={liveData.trustProfiles || []}
           />
         </div>
       )}

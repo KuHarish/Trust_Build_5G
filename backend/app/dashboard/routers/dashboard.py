@@ -136,7 +136,7 @@ async def websocket_dashboard_stream(websocket: WebSocket):
     try:
         while True:
             data = await dashboard_service.get_live_stream()
-            await websocket.send_json(data.model_dump())
+            await websocket.send_json(data.model_dump(mode="json"))
             await asyncio.sleep(2.5)
     except WebSocketDisconnect:
         logger.info("Dashboard WebSocket client disconnected cleanly.")
