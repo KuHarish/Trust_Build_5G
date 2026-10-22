@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    font-family: Outfit, "Segoe UI", Arial, sans-serif;
+  }
+
   body {
     @apply bg-dark-bg text-slate-100 font-sans antialiased m-0 p-0;
   }

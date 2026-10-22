@@ -92,11 +92,19 @@ class DatasetService:
     async def process_dataset(self, dataset_id: str, config: DatasetProcessRequest) -> DatasetStatisticsResponse:
         dataset = await ml_repository.get_dataset(dataset_id)
         if not dataset:
-            return DatasetStatisticsResponse(success=False, datasetId=dataset_id)
+            return DatasetStatisticsResponse(
+                success=False,
+                datasetId=dataset_id,
+                message="Dataset not found. Register the dataset before processing it.",
+            )
             
         if not os.path.exists(dataset.filePath):
             await ml_repository.update_dataset_status(dataset_id, "FAILED")
-            return DatasetStatisticsResponse(success=False, datasetId=dataset_id)
+            return DatasetStatisticsResponse(
+                success=False,
+                datasetId=dataset_id,
+                message=f"Dataset file was not found: {dataset.filePath}",
+            )
 
         await ml_repository.update_dataset_status(dataset_id, "PROCESSING")
         
@@ -139,6 +147,10 @@ class DatasetService:
         except Exception as e:
             logger.error(f"Processing failed for dataset {dataset_id}: {e}")
             await ml_repository.update_dataset_status(dataset_id, "FAILED")
-            return DatasetStatisticsResponse(success=False, datasetId=dataset_id)
+            return DatasetStatisticsResponse(
+                success=False,
+                datasetId=dataset_id,
+                message=f"Dataset processing failed: {e}",
+            )
 
 dataset_service = DatasetService()

@@ -68,7 +68,7 @@ export const MachineLearning: React.FC = () => {
   };
 
   const handleProcess = () => {
-    if (!selectedDatasetId) return;
+    if (!selectedDatasetId || selectedDataset?.status === 'FAILED') return;
     processMutation.mutate({
       id: selectedDatasetId,
       config: {
@@ -209,7 +209,7 @@ export const MachineLearning: React.FC = () => {
                         )}
                         <Button 
                           onClick={handleProcess} 
-                          disabled={processMutation.isPending || selectedDataset.status === 'PROCESSING'}
+                          disabled={processMutation.isPending || selectedDataset.status === 'PROCESSING' || selectedDataset.status === 'FAILED'}
                           className={selectedDataset.status === 'READY' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}
                         >
                           <Play className="w-4 h-4 mr-2" /> 
@@ -250,6 +250,13 @@ export const MachineLearning: React.FC = () => {
                           <Play className="w-3.5 h-3.5" />
                           {processMutation.isPending ? 'Processing...' : 'Preprocess Dataset'}
                         </Button>
+                      </div>
+                    )}
+
+                    {selectedDataset.status === 'FAILED' && (
+                      <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg flex items-center gap-2 text-rose-300 text-sm">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                        <span>Dataset processing is unavailable because the registered source file could not be read. Register a valid local dataset file and try again.</span>
                       </div>
                     )}
                     

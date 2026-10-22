@@ -30,7 +30,10 @@ async def get_dataset(dataset_id: str):
 async def process_dataset(dataset_id: str, config: DatasetProcessRequest):
     result = await dataset_service.process_dataset(dataset_id, config)
     if not result.success:
-        raise HTTPException(status_code=400, detail="Processing failed. Check if file exists or label column is correct.")
+        raise HTTPException(
+            status_code=400,
+            detail=result.message or "Processing failed. Check if the dataset file and label column are valid.",
+        )
     return result
 
 @router.get("/features", response_model=DatasetResponse)

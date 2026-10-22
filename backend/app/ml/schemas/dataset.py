@@ -25,6 +25,7 @@ class DatasetProcessRequest(BaseModel):
 class DatasetStatisticsResponse(BaseModel):
     success: bool
     datasetId: str
+    message: Optional[str] = None
     totalSamples: int = 0
     features: int = 0
     classes: int = 0
