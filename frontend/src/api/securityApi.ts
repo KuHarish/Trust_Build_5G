@@ -12,5 +12,6 @@ export const securityApi = {
   simulatePolicy: (policyId: string, evidence: any) => axios.post(`${SECURITY_API}/policies/${policyId}/simulate`, evidence),
   activatePolicy: (policyId: string) => axios.post(`${SECURITY_API}/policies/${policyId}/activate`),
   getAuditTimeline: (correlationId: string) => axios.get(`${SECURITY_API}/audit/timeline/${correlationId}`),
-  getNodeAuditHistory: (nodeId: string) => axios.get(`${SECURITY_API}/audit/node/${nodeId}`)
+  getNodeAuditHistory: (nodeId: string) => axios.get(`${SECURITY_API}/audit/node/${nodeId}`),
+  simulateEvent: (data?: any) => axios.post(`${SECURITY_API}/simulate-event`, data),
 };
