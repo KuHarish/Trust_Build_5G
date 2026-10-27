@@ -29,6 +29,7 @@ export const communicationApi = {
 export const attacksApi = {
   list: (params?: Record<string, unknown>) => apiClient.get('/attacks', { params }),
   getDetails: (attackId: string) => apiClient.get(`/attacks/${attackId}`),
+  simulate: (data?: Record<string, unknown>) => apiClient.post('/attacks/simulate', data),
 };
 
 export const trustApi = {
