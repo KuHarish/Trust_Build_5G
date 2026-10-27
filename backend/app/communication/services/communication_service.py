@@ -4,13 +4,15 @@ Abstracts data retrieval from repository, computes real-time streaming feeds for
 and synthesizes network-wide communication analytics statistics.
 """
 import logging
-from datetime import datetime, timezone
+import uuid
+import random
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Tuple, Dict
 from app.communication.models.session import CommunicationSession, SessionStatus, TrafficType
 from app.communication.models.packet import Packet
 from app.communication.schemas.packet import LiveTrafficFeedResponse, CommunicationStatisticsResponse
 from app.communication.repositories.communication_repository import communication_repository
-from app.edge.models.event import EventProtocol
+from app.edge.models.event import EventProtocol, EventStatus
 
 logger = logging.getLogger("trustchain.communication.service")
 
@@ -19,6 +21,7 @@ class CommunicationService:
     def __init__(self, repo=communication_repository):
         self.repo = repo
         self._start_time = datetime.now(timezone.utc)
+        self._packet_counter = 500
 
     async def _ensure_active_sessions(self):
         """Seed realistic 5G active topology circuits if repository has none."""
@@ -71,6 +74,70 @@ class CommunicationService:
                 )
                 await self.repo.insert_session(sess)
 
+    async def _ensure_recent_packets(self):
+        """Synthesize continuous live 5G packet transmissions across active circuits."""
+        await self._ensure_active_sessions()
+        now = datetime.now(timezone.utc)
+        sessions = list(self.repo._sessions.values())
+        if not sessions:
+            return
+
+        # Populate initial historical packets if repository has few or none
+        if len(self.repo._packets) < 15:
+            for i in range(25, 0, -1):
+                sess = sessions[i % len(sessions)]
+                t_item = (now - timedelta(seconds=i * 3)).isoformat()
+                self._packet_counter += 1
+                pkt_size = random.choice([256, 512, 1024, 1420, 2048, 4096])
+                lat = round(max(0.8, sess.averageLatency + random.uniform(-0.5, 0.5)), 2)
+                bw = round(max(10.0, sess.averageBandwidth + random.uniform(-50.0, 50.0)), 1)
+                pkt = Packet(
+                    packetId=f"pkt-seed-{uuid.uuid4().hex[:8]}",
+                    sessionId=sess.sessionId,
+                    sourceNodeId=sess.sourceNodeId,
+                    destinationNodeId=sess.destinationNodeId,
+                    sequenceNumber=self._packet_counter,
+                    packetSize=pkt_size,
+                    payloadSize=int(pkt_size * 0.82),
+                    protocol=sess.protocol,
+                    trafficType=sess.trafficType,
+                    ttl=random.choice([64, 128]),
+                    timestamp=t_item,
+                    latency=lat,
+                    bandwidth=bw,
+                    status=EventStatus.SUCCESS if random.random() > 0.04 else EventStatus.DROPPED,
+                    metadata={"seq": self._packet_counter}
+                )
+                await self.repo.insert_packet(pkt)
+
+        # On every poll/cycle, generate 2-3 fresh live packets with CURRENT UTC timestamp
+        new_count = random.randint(2, 3)
+        for _ in range(new_count):
+            sess = random.choice(sessions)
+            self._packet_counter += 1
+            pkt_size = random.choice([256, 512, 1024, 1420, 2048, 4096])
+            lat = round(max(0.6, sess.averageLatency + random.uniform(-0.6, 0.6)), 2)
+            bw = round(max(15.0, sess.averageBandwidth + random.uniform(-80.0, 80.0)), 1)
+            is_ok = random.random() > 0.03
+            pkt = Packet(
+                packetId=f"pkt-live-{uuid.uuid4().hex[:8]}",
+                sessionId=sess.sessionId,
+                sourceNodeId=sess.sourceNodeId,
+                destinationNodeId=sess.destinationNodeId,
+                sequenceNumber=self._packet_counter,
+                packetSize=pkt_size,
+                payloadSize=int(pkt_size * 0.82),
+                protocol=sess.protocol,
+                trafficType=sess.trafficType,
+                ttl=random.choice([64, 128]),
+                timestamp=now.isoformat(),
+                latency=lat,
+                bandwidth=bw,
+                status=EventStatus.SUCCESS if is_ok else EventStatus.DROPPED,
+                metadata={"seq": self._packet_counter}
+            )
+            await self.repo.insert_packet(pkt)
+
     async def list_sessions(
         self, limit: int = 50, offset: int = 0, status: Optional[str] = None, source: Optional[str] = None, target: Optional[str] = None
     ) -> Tuple[List[CommunicationSession], int]:
@@ -83,6 +150,7 @@ class CommunicationService:
     async def list_packets(
         self, limit: int = 50, offset: int = 0, session_id: Optional[str] = None, protocol: Optional[str] = None
     ) -> Tuple[List[Packet], int]:
+        await self._ensure_recent_packets()
         return await self.repo.list_packets(limit=limit, offset=offset, session_id=session_id, protocol=protocol)
 
     async def get_packet(self, packet_id: str) -> Optional[Packet]:
@@ -92,7 +160,7 @@ class CommunicationService:
         """
         Returns currently open active sessions for drawing animated React Flow edges and recent packets for live tickers.
         """
-        await self._ensure_active_sessions()
+        await self._ensure_recent_packets()
         active_sessions = await self.repo.get_all_active_sessions()
         recent_packets = await self.repo.get_recent_packets(limit=30)
         return LiveTrafficFeedResponse(

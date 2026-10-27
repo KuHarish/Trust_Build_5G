@@ -37,7 +37,8 @@ export function useCommunicationPackets(params?: PacketQueryParams) {
   return useQuery({
     queryKey: COMM_QUERY_KEYS.packets(params),
     queryFn: () => CommunicationService.listPackets(params),
-    refetchInterval: 4000,
+    refetchInterval: 2500,
+    refetchIntervalInBackground: true,
   });
 }
 
