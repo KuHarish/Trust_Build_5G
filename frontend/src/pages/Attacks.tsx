@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PageHeader } from '@/layouts/PageHeader';
 import { Card } from '@/components/common/Card';
-import { Button } from '@/components/common/Button';
 import {
   ShieldAlert,
   RefreshCw,
   Clock,
-  Filter,
   AlertOctagon,
   Brain,
   Server,
@@ -17,9 +15,6 @@ import {
   Play,
   Pause,
   Search,
-  Check,
-  Radio,
-  Shield,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { attacksApi } from '@/api';
@@ -178,7 +173,7 @@ export const Attacks: React.FC = () => {
   const [filterNodeId, setFilterNodeId] = useState<string>('');
 
   // 1. Fetch attack logs from backend with fast 3s polling
-  const { data: logsRes, isLoading, error, refetch } = useQuery({
+  const { data: logsRes, isLoading, refetch } = useQuery({
     queryKey: ['attack-logs', currentPage, filterAttackType, filterSeverity, filterNodeId],
     queryFn: () =>
       attacksApi
@@ -195,7 +190,6 @@ export const Attacks: React.FC = () => {
   });
 
   const queryAttacks: AttackIncident[] = logsRes?.data || [];
-  const totalCount = logsRes?.total_count || 0;
 
   // 2. Local resilient streaming state with pre-seeded 5G forensic incidents
   const [streamAttacks, setStreamAttacks] = useState<AttackIncident[]>(() => {
@@ -265,7 +259,7 @@ export const Attacks: React.FC = () => {
   }, [streamAttacks, selectedAttackId]);
 
   // Fetch incident investigation details
-  const { data: detailsRes, isLoading: detailsLoading } = useQuery({
+  const { data: detailsRes } = useQuery({
     queryKey: ['attack-details', selectedAttackId],
     queryFn: () => (selectedAttackId ? attacksApi.getDetails(selectedAttackId).then((res) => res.data) : null),
     enabled: !!selectedAttackId,
