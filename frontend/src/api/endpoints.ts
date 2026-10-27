@@ -54,6 +54,7 @@ export const blockchainApi = {
   },
   getOverview: () => apiClient.get('/blockchain/overview'),
   validateChain: () => apiClient.get('/blockchain/validate'),
+  mineBlock: (data?: Record<string, unknown>) => apiClient.post('/blockchain/mine', data),
 };
 
 export const mlApi = {

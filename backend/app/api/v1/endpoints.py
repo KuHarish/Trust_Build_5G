@@ -415,6 +415,7 @@ blockchain_router = APIRouter(prefix="/blockchain", tags=["Blockchain Trust Stor
 async def get_blockchain_blocks(page: int = 1, limit: int = 20, event_type: Optional[str] = None, user=Depends(get_current_user_token)):
     """Retrieve immutable blockchain blocks sealing network trust reputations and evidence ledgers."""
     from app.blockchain.services.blockchain_service import blockchain_service
+    await blockchain_service._ensure_seeded()
     
     coll = blockchain_service.collection
     if coll is None:
@@ -444,6 +445,8 @@ async def get_blockchain_blocks(page: int = 1, limit: int = 20, event_type: Opti
 @blockchain_router.get("/overview", response_model=APIResponse, summary="Get Blockchain Status and Overview")
 async def get_blockchain_overview(user=Depends(get_current_user_token)):
     from app.blockchain.services.blockchain_service import blockchain_service
+    await blockchain_service._ensure_seeded()
+    
     coll = blockchain_service.collection
     if coll is None:
         return APIResponse(success=False, message="Database unavailable.")
@@ -460,9 +463,23 @@ async def get_blockchain_overview(user=Depends(get_current_user_token)):
         "latestBlock": latest_block
     })
 
+@blockchain_router.post("/mine", response_model=APIResponse, summary="Simulate / Mine New Blockchain Block")
+async def mine_blockchain_block(data: Optional[Dict[str, Any]] = None, user=Depends(get_current_user_token)):
+    """Simulate mining a new cryptographic block containing network trust audits."""
+    from app.blockchain.services.blockchain_service import blockchain_service
+    block = await blockchain_service.generate_simulated_block(data)
+    block_copy = {**block, "_id": str(block["_id"])}
+    return APIResponse(
+        success=True, 
+        data=block_copy, 
+        message=f"Block #{block['block_index']} successfully mined and appended to chain."
+    )
+
 @blockchain_router.get("/validate", response_model=APIResponse, summary="Validate Blockchain Integrity")
 async def validate_blockchain(user=Depends(get_current_user_token)):
     from app.blockchain.services.blockchain_service import blockchain_service
+    await blockchain_service._ensure_seeded()
+    
     coll = blockchain_service.collection
     if coll is None:
         return APIResponse(success=False, message="Database unavailable.")
@@ -478,14 +495,8 @@ async def validate_blockchain(user=Depends(get_current_user_token)):
         
     for i in range(len(blocks)):
         current_block = blocks[i]
+        computed_hash = blockchain_service.compute_block_hash(current_block)
         
-        # Verify hash
-        # Need to reconstruct the block dict exactly as it was when hashed
-        block_copy = {**current_block}
-        del block_copy["block_hash"]
-        # Convert _id back to int because it might have been saved as int
-        
-        computed_hash = blockchain_service._hash_block(block_copy)
         if computed_hash != current_block["block_hash"]:
             return APIResponse(success=True, data={
                 "isValid": False, 
@@ -500,7 +511,7 @@ async def validate_blockchain(user=Depends(get_current_user_token)):
                     "message": f"Tampering detected at block {current_block['block_index']}. Previous hash mismatch."
                 })
                 
-    return APIResponse(success=True, data={"isValid": True, "message": "Chain is cryptographically valid."})
+    return APIResponse(success=True, data={"isValid": True, "message": f"Chain is cryptographically valid. Verified {len(blocks)} blocks successfully."})
 
 
 # ==============================================================================
