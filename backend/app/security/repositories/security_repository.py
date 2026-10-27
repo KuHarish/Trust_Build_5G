@@ -8,6 +8,34 @@ from app.security.models.security_policy import SecurityPolicy
 logger = logging.getLogger("trustchain.security.repository")
 
 
+def _matches_field_value(actual: Any, expected: Any) -> bool:
+    if isinstance(expected, dict):
+        for op, val in expected.items():
+            if op == "$nin":
+                if actual in val:
+                    return False
+            elif op == "$in":
+                if actual not in val:
+                    return False
+            elif op == "$ne":
+                if actual == val:
+                    return False
+            elif op == "$gt":
+                if not (actual is not None and actual > val):
+                    return False
+            elif op == "$gte":
+                if not (actual is not None and actual >= val):
+                    return False
+            elif op == "$lt":
+                if not (actual is not None and actual < val):
+                    return False
+            elif op == "$lte":
+                if not (actual is not None and actual <= val):
+                    return False
+        return True
+    return actual == expected
+
+
 class _MemoryCursor:
     def __init__(self, docs: List[Dict[str, Any]], filter_dict: Optional[Dict[str, Any]] = None, sort_field: Optional[str] = None, sort_direction: int = -1):
         self._docs = list(docs)
@@ -43,11 +71,7 @@ class _MemoryCursor:
     def _matches_clause(self, clause: Dict[str, Any], doc: Dict[str, Any]) -> bool:
         for key, expected in clause.items():
             actual = doc.get(key)
-            if key == "_id":
-                if actual != expected:
-                    return False
-                continue
-            if actual != expected:
+            if not _matches_field_value(actual, expected):
                 return False
         return True
 
@@ -95,7 +119,7 @@ class _MemoryCollection:
                 if not any(self._matches(doc, clause) for clause in expected):
                     return False
                 continue
-            if doc.get(key) != expected:
+            if not _matches_field_value(doc.get(key), expected):
                 return False
         return True
 

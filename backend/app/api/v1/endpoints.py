@@ -8,6 +8,7 @@ Security Controller, and Analytics without active business logic.
 
 from fastapi import APIRouter, status, Depends, Query
 from typing import Optional, List, Dict, Any
+from datetime import datetime, timezone, timedelta
 import logging
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.core.dependencies import get_current_user_token, require_role
@@ -77,7 +78,7 @@ async def get_traffic_logs(node_id: Optional[str] = None, user=Depends(get_curre
             "timestamp": ev.timestamp,
             "source": ev.sourceNodeId,
             "destination": ev.destinationNodeId,
-            "protocol": ev.protocol.value,
+            "protocol": ev.protocol.value if hasattr(ev.protocol, 'value') else str(ev.protocol),
             "volume": ev.packetSize,
             "attackType": attack_type,
             "securityDecision": decision,
@@ -97,6 +98,165 @@ async def get_packet_stream(session_id: Optional[str] = None, user=Depends(requi
 # ==============================================================================
 attacks_router = APIRouter(prefix="/attacks", tags=["Intrusion Detection & Threats"])
 
+async def _ensure_seed_attacks(security_repo):
+    """Seed realistic 5G forensic threat detections and mitigations if repository has none."""
+    try:
+        count = await security_repo.decisions_collection.count_documents({
+            "mlPrediction": {"$nin": [None, "MISSING", "BENIGN", "Normal", "normal"]}
+        })
+        if count >= 3:
+            return
+
+        now = datetime.now(timezone.utc)
+        mock_attacks = [
+            {
+                "id": "dec-atk-001",
+                "nodeId": "Edge-Gateway-04",
+                "decision": "QUARANTINE",
+                "severity": "CRITICAL",
+                "reason": "Volumetric SYN surge detected across 5G gNodeB front-haul; 14,200 pkt/s threshold exceeded",
+                "trustScore": 0.18,
+                "trustLevel": "MALICIOUS",
+                "mlPrediction": "DDoS",
+                "mlConfidence": 0.985,
+                "attackCategory": "DDoS",
+                "policyId": "pol-sec-5g-01",
+                "policyVersion": 3,
+                "correlationId": "corr-ddos-8f1",
+                "offset_secs": 18,
+                "action_status": "COMPLETED",
+                "action_result": "Node interface isolated into quarantine VLAN 4094; ACL ingress rule enacted."
+            },
+            {
+                "id": "dec-atk-002",
+                "nodeId": "IoT-Sensor-008",
+                "decision": "RATE_LIMIT",
+                "severity": "HIGH",
+                "reason": "Rogue ARP/ND cache poisoning and certificate impersonation detected against MEC gateway",
+                "trustScore": 0.32,
+                "trustLevel": "SUSPICIOUS",
+                "mlPrediction": "MitM",
+                "mlConfidence": 0.942,
+                "attackCategory": "MitM",
+                "policyId": "pol-sec-5g-02",
+                "policyVersion": 2,
+                "correlationId": "corr-mitm-3e9",
+                "offset_secs": 64,
+                "action_status": "COMPLETED",
+                "action_result": "Bandwidth throttled to 64 kbps; mTLS re-attestation challenge issued."
+            },
+            {
+                "id": "dec-atk-003",
+                "nodeId": "MEC-Processor-03",
+                "decision": "MONITOR",
+                "severity": "MEDIUM",
+                "reason": "Rapid sequential port probing across internal SBA microservice ports 8080-8095",
+                "trustScore": 0.54,
+                "trustLevel": "QUESTIONABLE",
+                "mlPrediction": "Port-Scan",
+                "mlConfidence": 0.891,
+                "attackCategory": "Scanning",
+                "policyId": "pol-sec-5g-01",
+                "policyVersion": 3,
+                "correlationId": "corr-scan-7b2",
+                "offset_secs": 140,
+                "action_status": "COMPLETED",
+                "action_result": "Packet logging elevated to debug verbosity; deep packet inspection enabled."
+            },
+            {
+                "id": "dec-atk-004",
+                "nodeId": "IoT-Sensor-015",
+                "decision": "BLOCK",
+                "severity": "CRITICAL",
+                "reason": "Periodic high-entropy outbound beaconing matching Mirai/Mozi botnet C2 signature",
+                "trustScore": 0.12,
+                "trustLevel": "MALICIOUS",
+                "mlPrediction": "Botnet",
+                "mlConfidence": 0.978,
+                "attackCategory": "Botnet",
+                "policyId": "pol-sec-5g-03",
+                "policyVersion": 1,
+                "correlationId": "corr-bot-4a0",
+                "offset_secs": 260,
+                "action_status": "COMPLETED",
+                "action_result": "Radio bearer severed; SIM credentials revoked on core 5G UDM."
+            },
+            {
+                "id": "dec-atk-005",
+                "nodeId": "Edge-Gateway-02",
+                "decision": "QUARANTINE",
+                "severity": "HIGH",
+                "reason": "Malformed GTP-U TEID encapsulation headers attempting buffer overflow in UPF datapath",
+                "trustScore": 0.28,
+                "trustLevel": "MALICIOUS",
+                "mlPrediction": "DoS",
+                "mlConfidence": 0.923,
+                "attackCategory": "DoS",
+                "policyId": "pol-sec-5g-01",
+                "policyVersion": 3,
+                "correlationId": "corr-dos-9c3",
+                "offset_secs": 380,
+                "action_status": "COMPLETED",
+                "action_result": "UPF GTP tunnel dropped and re-initialized; offending IP blacklisted."
+            },
+            {
+                "id": "dec-atk-006",
+                "nodeId": "Core-Server-02",
+                "decision": "RATE_LIMIT",
+                "severity": "MEDIUM",
+                "reason": "Over 250 failed mTLS authentication handshakes within 20s window",
+                "trustScore": 0.61,
+                "trustLevel": "QUESTIONABLE",
+                "mlPrediction": "Brute Force",
+                "mlConfidence": 0.865,
+                "attackCategory": "Brute Force",
+                "policyId": "pol-sec-5g-02",
+                "policyVersion": 2,
+                "correlationId": "corr-auth-1d5",
+                "offset_secs": 520,
+                "action_status": "COMPLETED",
+                "action_result": "IP tarpitted for 15 minutes; token rate limited to 1 req/sec."
+            },
+        ]
+
+        for item in mock_attacks:
+            created_time = (now - timedelta(seconds=item["offset_secs"])).isoformat()
+            decision_doc = {
+                "_id": item["id"],
+                "decisionId": item["id"],
+                "nodeId": item["nodeId"],
+                "decision": item["decision"],
+                "severity": item["severity"],
+                "reason": item["reason"],
+                "trustScore": item["trustScore"],
+                "trustLevel": item["trustLevel"],
+                "mlPrediction": item["mlPrediction"],
+                "mlConfidence": item["mlConfidence"],
+                "attackCategory": item["attackCategory"],
+                "policyId": item["policyId"],
+                "policyVersion": item["policyVersion"],
+                "explanation": {"correlationId": item["correlationId"], "model": "RandomForest-5G-v2"},
+                "createdAt": created_time,
+                "isMitigated": True
+            }
+            await security_repo.decisions_collection.insert_one(decision_doc)
+
+            action_doc = {
+                "_id": f"act-{item['id']}",
+                "actionId": f"act-{item['id']}",
+                "nodeId": item["nodeId"],
+                "decisionId": item["id"],
+                "decision": item["decision"],
+                "correlationId": item["correlationId"],
+                "status": item["action_status"],
+                "result": item["action_result"],
+                "requestedAt": created_time,
+                "completedAt": created_time
+            }
+            await security_repo.actions_collection.insert_one(action_doc)
+    except Exception as e:
+        logger.warning(f"Error ensuring seed attacks: {e}")
+
 @attacks_router.get("", response_model=PaginatedResponse, summary="Retrieve Intrusion & Threat Detection Logs")
 async def list_attack_logs(
     page: int = 1, 
@@ -109,6 +269,8 @@ async def list_attack_logs(
     """Retrieve documented cyber threat detections, DDoS surges, and MitM interception alerts."""
     from app.security.repositories.security_repository import security_repository
     
+    await _ensure_seed_attacks(security_repository)
+
     query = {
         "mlPrediction": {"$nin": [None, "MISSING", "BENIGN", "Normal", "normal"]}
     }
@@ -150,6 +312,8 @@ async def list_attack_logs(
 @attacks_router.get("/{decision_id}", response_model=APIResponse, summary="Retrieve Attack Investigation Details")
 async def get_attack_details(decision_id: str, user=Depends(get_current_user_token)):
     from app.security.repositories.security_repository import security_repository
+    
+    await _ensure_seed_attacks(security_repository)
     
     doc = await security_repository.decisions_collection.find_one({"_id": decision_id})
     if not doc:
