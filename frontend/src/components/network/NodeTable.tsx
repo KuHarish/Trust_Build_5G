@@ -28,7 +28,7 @@ interface NodeTableProps {
   onRowClick: (node: SimulationNode) => void;
   onEdit: (node: SimulationNode, e: React.MouseEvent) => void;
   onDelete: (node: SimulationNode, e: React.MouseEvent) => void;
-  onStatusToggle: (node: SimulationNode, newStatus: SimulationNodeStatus, e: React.MouseEvent) => void;
+  onStatusToggle: (node: SimulationNode, newStatus: SimulationNodeStatus) => void;
 }
 
 export const NodeTable: React.FC<NodeTableProps> = ({
@@ -70,7 +70,11 @@ export const NodeTable: React.FC<NodeTableProps> = ({
       node.nodeType.toLowerCase().includes(search.toLowerCase());
 
     const matchesType = typeFilter === 'ALL' || node.nodeType === typeFilter;
-    const matchesStatus = statusFilter === 'ALL' || node.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      node.status === statusFilter ||
+      (statusFilter === 'ONLINE' && (node.status === 'ONLINE' || node.status === 'ACTIVE')) ||
+      (statusFilter === 'OFFLINE' && (node.status === 'OFFLINE' || node.status === 'INACTIVE'));
 
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -97,6 +101,7 @@ export const NodeTable: React.FC<NodeTableProps> = ({
   const getStatusBadgeVariant = (status: SimulationNodeStatus) => {
     switch (status) {
       case 'ONLINE':
+      case 'ACTIVE':
         return 'success';
       case 'BUSY':
         return 'accent';
@@ -105,6 +110,7 @@ export const NodeTable: React.FC<NodeTableProps> = ({
       case 'MAINTENANCE':
         return 'warning';
       case 'OFFLINE':
+      case 'INACTIVE':
       default:
         return 'danger';
     }
@@ -155,11 +161,16 @@ export const NodeTable: React.FC<NodeTableProps> = ({
                 setCurrentPage(1);
               }}
               options={[
-                { label: 'All Device Types', value: 'ALL' },
+                { label: 'All Entity Types', value: 'ALL' },
+                { label: 'Edge / IoT Node', value: 'Edge / IoT Node' },
+                { label: 'Edge Processing Node', value: 'Edge Processing Node' },
+                { label: 'Gateway Node', value: 'Gateway Node' },
+                { label: 'Aggregation Node', value: 'Aggregation Node' },
+                { label: 'Core / Server Node', value: 'Core / Server Node' },
+                { label: 'Gateway', value: 'Gateway' },
+                { label: 'Edge Device', value: 'Edge Device' },
                 { label: 'Smartphone', value: 'Smartphone' },
                 { label: 'IoT Sensor', value: 'IoT Sensor' },
-                { label: 'Edge Device', value: 'Edge Device' },
-                { label: 'Gateway', value: 'Gateway' },
                 { label: 'Autonomous Vehicle', value: 'Autonomous Vehicle' },
                 { label: 'Industrial Device', value: 'Industrial Device' },
                 { label: 'Medical Device', value: 'Medical Device' },
@@ -175,8 +186,8 @@ export const NodeTable: React.FC<NodeTableProps> = ({
             }}
             options={[
               { label: 'All Statuses', value: 'ALL' },
-              { label: 'Online', value: 'ONLINE' },
-              { label: 'Offline', value: 'OFFLINE' },
+              { label: 'Online / Active', value: 'ONLINE' },
+              { label: 'Offline / Inactive', value: 'OFFLINE' },
               { label: 'Busy', value: 'BUSY' },
               { label: 'Sleeping', value: 'SLEEPING' },
               { label: 'Maintenance', value: 'MAINTENANCE' },
@@ -254,16 +265,21 @@ export const NodeTable: React.FC<NodeTableProps> = ({
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={node.status}
-                      onChange={(e) => onStatusToggle(node, e.target.value as SimulationNodeStatus, e as unknown as React.MouseEvent)}
-                      className="bg-transparent border-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onStatusToggle(node, e.target.value as SimulationNodeStatus);
+                      }}
+                      className="bg-slate-900 border border-slate-700 text-xs font-mono py-1 px-1.5 rounded cursor-pointer text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option className="bg-slate-900 text-emerald-400" value="ONLINE">ONLINE</option>
+                      <option className="bg-slate-900 text-emerald-400" value="ACTIVE">ACTIVE</option>
                       <option className="bg-slate-900 text-rose-400" value="OFFLINE">OFFLINE</option>
+                      <option className="bg-slate-900 text-rose-400" value="INACTIVE">INACTIVE</option>
                       <option className="bg-slate-900 text-amber-400" value="BUSY">BUSY</option>
                       <option className="bg-slate-900 text-blue-400" value="SLEEPING">SLEEPING</option>
                       <option className="bg-slate-900 text-purple-400" value="MAINTENANCE">MAINTENANCE</option>
                     </select>
-                    <Badge variant={getStatusBadgeVariant(node.status)} className="ml-1 pointer-events-none">
+                    <Badge variant={getStatusBadgeVariant(node.status)} className="ml-1.5 pointer-events-none">
                       {node.status}
                     </Badge>
                   </td>

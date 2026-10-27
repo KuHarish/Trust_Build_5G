@@ -68,7 +68,7 @@ class NodeCreate(NodeBaseValidation):
     longitude: float = Field(..., ge=-180.0, le=180.0)
     signalStrength: Optional[float] = Field(default=-65.0, ge=-130.0, le=-20.0)
     bandwidth: Optional[float] = Field(default=1000.0, ge=1.0, le=100000.0)
-    latency: Optional[float] = Field(default=5.0, ge=0.1, le=5000.0)
+    latency: Optional[float] = Field(default=5.0, ge=0.01, le=5000.0)
     batteryLevel: Optional[float] = Field(default=100.0, ge=0.0, le=100.0)
     firmwareVersion: Optional[str] = Field(default="v1.0.0-5g")
     connections: Optional[int] = Field(default=0, ge=0)
@@ -87,7 +87,7 @@ class NodeUpdate(NodeBaseValidation):
     longitude: Optional[float] = Field(None, ge=-180.0, le=180.0)
     signalStrength: Optional[float] = Field(None, ge=-130.0, le=-20.0)
     bandwidth: Optional[float] = Field(None, ge=1.0, le=100000.0)
-    latency: Optional[float] = Field(None, ge=0.1, le=5000.0)
+    latency: Optional[float] = Field(None, ge=0.01, le=5000.0)
     batteryLevel: Optional[float] = Field(None, ge=0.0, le=100.0)
     firmwareVersion: Optional[str] = None
     connections: Optional[int] = Field(None, ge=0)

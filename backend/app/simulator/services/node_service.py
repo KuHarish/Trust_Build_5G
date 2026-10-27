@@ -29,10 +29,15 @@ class NodeService:
                 SimulationNodeType.IOT_SENSOR: "Low-Power Wide-Area (LPWA) Sensor",
                 SimulationNodeType.EDGE_DEVICE: "Multi-Access Edge Computing Server",
                 SimulationNodeType.GATEWAY: "5G Core gNodeB / UPF Transport Gateway",
+                SimulationNodeType.GATEWAY_NODE: "5G Core gNodeB / UPF Transport Gateway",
                 SimulationNodeType.AUTONOMOUS_VEHICLE: "Cellular V2X Autonomous Vehicle Node",
                 SimulationNodeType.INDUSTRIAL_DEVICE: "Cyber-Physical Factory Automation Node",
                 SimulationNodeType.MEDICAL_DEVICE: "Critical Healthcare IoMT Telemetry Unit",
-                SimulationNodeType.DRONE: "Unmanned Aerial Radio Relay UAV"
+                SimulationNodeType.DRONE: "Unmanned Aerial Radio Relay UAV",
+                SimulationNodeType.EDGE_IOT: "Field Sensor / IoT Terminal",
+                SimulationNodeType.EDGE_PROCESSING: "Multi-Access Edge Compute (MEC)",
+                SimulationNodeType.AGGREGATION: "Regional Aggregation Router",
+                SimulationNodeType.CORE_SERVER: "5G Core Backend Server",
             }
             data_dict["deviceCategory"] = category_mapping.get(create_data.nodeType, "Standard 5G Entity")
 
@@ -63,7 +68,13 @@ class NodeService:
 
         # Filter by operational status
         if status and status.strip() and status != "ALL":
-            nodes = [n for n in nodes if n.status.value.lower() == status.strip().lower()]
+            target_status = status.strip().lower()
+            if target_status == "online":
+                nodes = [n for n in nodes if n.status.value.lower() in ["online", "active"]]
+            elif target_status == "offline":
+                nodes = [n for n in nodes if n.status.value.lower() in ["offline", "inactive"]]
+            else:
+                nodes = [n for n in nodes if n.status.value.lower() == target_status]
 
         # Search query matching ID, Name, IP, or MAC
         if search and search.strip():
@@ -143,8 +154,8 @@ class NodeService:
                 averageSignalStrength=0.0
             )
 
-        online_nodes = sum(1 for n in nodes if n.status == SimulationNodeStatus.ONLINE)
-        offline_nodes = sum(1 for n in nodes if n.status == SimulationNodeStatus.OFFLINE)
+        online_nodes = sum(1 for n in nodes if n.status in [SimulationNodeStatus.ONLINE, SimulationNodeStatus.ACTIVE, SimulationNodeStatus.BUSY])
+        offline_nodes = sum(1 for n in nodes if n.status in [SimulationNodeStatus.OFFLINE, SimulationNodeStatus.INACTIVE])
         
         node_types_map: Dict[str, int] = {}
         total_signal_online = 0.0
@@ -153,7 +164,7 @@ class NodeService:
         for n in nodes:
             t_str = n.nodeType.value if hasattr(n.nodeType, "value") else str(n.nodeType)
             node_types_map[t_str] = node_types_map.get(t_str, 0) + 1
-            if n.status in [SimulationNodeStatus.ONLINE, SimulationNodeStatus.BUSY]:
+            if n.status in [SimulationNodeStatus.ONLINE, SimulationNodeStatus.ACTIVE, SimulationNodeStatus.BUSY]:
                 total_signal_online += float(n.signalStrength)
                 signal_contributors += 1
 

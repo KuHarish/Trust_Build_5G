@@ -8,10 +8,11 @@ import { API_BASE } from '@/constants';
 import { NodeCreateInput, NodeUpdateInput, SimulationNodeStatus } from '@/types/node';
 
 // Derive root API base path (strips any ending /v1 to match exact /api/nodes requirement)
-const ROOT_API = API_BASE.replace(/\/v1\/?$/, '');
+const normalizedBase = API_BASE.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+const BASE_NODES_URL = `${normalizedBase}/nodes`;
 
 const nodeClient = axios.create({
-  baseURL: ROOT_API,
+  baseURL: BASE_NODES_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,11 +28,11 @@ nodeClient.interceptors.request.use((config) => {
 });
 
 export const simulationNodeApi = {
-  getStatistics: () => nodeClient.get('/nodes/statistics'),
-  listNodes: (params?: Record<string, unknown>) => nodeClient.get('/nodes', { params }),
-  getNode: (id: string) => nodeClient.get(`/nodes/${id}`),
-  createNode: (data: NodeCreateInput) => nodeClient.post('/nodes', data),
-  updateNode: (id: string, data: NodeUpdateInput) => nodeClient.put(`/nodes/${id}`, data),
-  updateStatus: (id: string, status: SimulationNodeStatus) => nodeClient.patch(`/nodes/${id}/status`, { status }),
-  deleteNode: (id: string) => nodeClient.delete(`/nodes/${id}`),
+  getStatistics: () => nodeClient.get('/statistics'),
+  listNodes: (params?: Record<string, unknown>) => nodeClient.get('', { params }),
+  getNode: (id: string) => nodeClient.get(`/${id}`),
+  createNode: (data: NodeCreateInput) => nodeClient.post('', data),
+  updateNode: (id: string, data: NodeUpdateInput) => nodeClient.put(`/${id}`, data),
+  updateStatus: (id: string, status: SimulationNodeStatus) => nodeClient.patch(`/${id}/status`, { status }),
+  deleteNode: (id: string) => nodeClient.delete(`/${id}`),
 };

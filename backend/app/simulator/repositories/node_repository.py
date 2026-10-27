@@ -104,10 +104,14 @@ class NodeRepository:
             try:
                 # Verify name uniqueness if changed
                 existing = await collection.find_one({"nodeName": {"$regex": f"^{re.escape(node.nodeName)}$", "$options": "i"}})
-                if existing and existing.get("id") != node.id and existing.get("_id") != node.id:
-                    raise ValueError("Duplicate Node Name: A node with this designation already exists.")
+                if existing:
+                    matched_id = existing.get("id") or str(existing.get("_id"))
+                    if matched_id != node.id and str(existing.get("_id")) != node.id:
+                        raise ValueError("Duplicate Node Name: A node with this designation already exists.")
                 
-                await collection.replace_one({"id": node.id}, node_dict, upsert=True)
+                res = await collection.replace_one({"id": node.id}, node_dict)
+                if res.matched_count == 0:
+                    await collection.replace_one({"_id": node.id}, node_dict, upsert=True)
                 return node
             except Exception as e:
                 if isinstance(e, ValueError):

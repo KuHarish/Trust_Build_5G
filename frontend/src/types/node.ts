@@ -4,6 +4,13 @@
  */
 
 export type SimulationNodeType =
+  // 5G Network Infrastructure Classifications
+  | 'Core / Server Node'
+  | 'Aggregation Node'
+  | 'Gateway Node'
+  | 'Edge Processing Node'
+  | 'Edge / IoT Node'
+  // 5G Physical & IoT Device Categories
   | 'Smartphone'
   | 'IoT Sensor'
   | 'Edge Device'
@@ -11,9 +18,12 @@ export type SimulationNodeType =
   | 'Autonomous Vehicle'
   | 'Industrial Device'
   | 'Medical Device'
-  | 'Drone';
+  | 'Drone'
+  | (string & {});
 
 export type SimulationNodeStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
   | 'ONLINE'
   | 'OFFLINE'
   | 'BUSY'
@@ -38,7 +48,8 @@ export interface SimulationNode {
   lastSeen: string;
   createdAt: string;
   updatedAt: string;
-  connections: number;
+  connections?: number;
+  relationships?: Array<{ targetId: string; relationshipType: string }>;
   metadata?: Record<string, unknown>;
 }
 

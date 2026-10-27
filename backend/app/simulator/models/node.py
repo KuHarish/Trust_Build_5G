@@ -12,11 +12,24 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class SimulationNodeType(str, Enum):
     """Supported virtual 5G edge, IoT, and gateway node classifications."""
+    # 5G Network Infrastructure Classifications
     EDGE_IOT = "Edge / IoT Node"
     EDGE_PROCESSING = "Edge Processing Node"
-    GATEWAY = "Gateway Node"
+    GATEWAY_NODE = "Gateway Node"
     AGGREGATION = "Aggregation Node"
     CORE_SERVER = "Core / Server Node"
+    
+    # 5G Physical & IoT Device Categories
+    SMARTPHONE = "Smartphone"
+    IOT_SENSOR = "IoT Sensor"
+    EDGE_DEVICE = "Edge Device"
+    GATEWAY = "Gateway"
+    AUTONOMOUS_VEHICLE = "Autonomous Vehicle"
+    INDUSTRIAL_DEVICE = "Industrial Device"
+    MEDICAL_DEVICE = "Medical Device"
+    DRONE = "Drone"
+    
+    # Legacy aliases
     LEGACY_GATEWAY = "Gateway"
     LEGACY_EDGE_DEVICE = "Edge Device"
 
@@ -57,6 +70,7 @@ class SimulationNode(BaseModel):
     latency: float = Field(default=5.0, description="Round-trip packet transmission latency in milliseconds")
     batteryLevel: float = Field(default=100.0, description="Available battery charge percentage (0.0 to 100.0)")
     firmwareVersion: str = Field(default="v1.0.0-5g", description="Active deployed firmware software package version")
+    connections: int = Field(default=0, description="Active peer connections or relays count")
     lastSeen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of latest telemetry check-in")
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp when node was first registered")
     updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of latest attribute modification")

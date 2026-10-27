@@ -82,8 +82,7 @@ export const Network: React.FC = () => {
     }
   };
 
-  const handleStatusToggle = async (node: SimulationNode, newStatus: SimulationNodeStatus, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleStatusToggle = async (node: SimulationNode, newStatus: SimulationNodeStatus) => {
     try {
       await statusMutation.mutateAsync({ id: node.id, status: newStatus });
       if (selectedNode?.id === node.id) {
@@ -94,6 +93,11 @@ export const Network: React.FC = () => {
       console.error('Status patch failed:', err);
     }
   };
+
+  // Keep selectedNode synchronized with live periodic telemetry updates from nodesList
+  const liveSelectedNode = selectedNode
+    ? nodesList.find((n) => n.id === selectedNode.id) || selectedNode
+    : null;
 
   return (
     <div className="space-y-6 text-slate-100 pb-12">
@@ -260,7 +264,7 @@ export const Network: React.FC = () => {
 
       {/* Slide-over Inspection Detail Tray */}
       <NodeDetailsPanel
-        node={selectedNode}
+        node={liveSelectedNode}
         onClose={() => setSelectedNode(null)}
         onEdit={(node) => {
           setSelectedNode(null);

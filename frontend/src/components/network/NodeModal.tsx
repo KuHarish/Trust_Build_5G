@@ -4,7 +4,7 @@ import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
-import { SimulationNode, NodeCreateInput, SimulationNodeType } from '@/types/node';
+import { SimulationNode, NodeCreateInput, SimulationNodeType, SimulationNodeStatus } from '@/types/node';
 import { AlertCircle } from 'lucide-react';
 
 interface NodeFormModalProps {
@@ -88,6 +88,7 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
       ...rest,
       nodeName: simNodeName,
       nodeType: simNodeType,
+      status: data.status || 'ONLINE',
       latitude: Number(data.latitude ?? 0),
       longitude: Number(data.longitude ?? 0),
       signalStrength: Number(data.signalStrength ?? -65.0),
@@ -143,10 +144,15 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
                   value={field.value}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value as SimulationNodeType)}
                   options={[
+                    { label: 'Gateway Node (5G gNodeB / UPF)', value: 'Gateway Node' },
+                    { label: 'Edge Processing Node (MEC)', value: 'Edge Processing Node' },
+                    { label: 'Edge / IoT Node', value: 'Edge / IoT Node' },
+                    { label: 'Aggregation Node', value: 'Aggregation Node' },
+                    { label: 'Core / Server Node', value: 'Core / Server Node' },
+                    { label: 'Gateway', value: 'Gateway' },
+                    { label: 'Edge Device', value: 'Edge Device' },
                     { label: 'Smartphone', value: 'Smartphone' },
                     { label: 'IoT Sensor', value: 'IoT Sensor' },
-                    { label: 'Edge Device', value: 'Edge Device' },
-                    { label: 'Gateway', value: 'Gateway' },
                     { label: 'Autonomous Vehicle', value: 'Autonomous Vehicle' },
                     { label: 'Industrial Device', value: 'Industrial Device' },
                     { label: 'Medical Device', value: 'Medical Device' },
@@ -235,6 +241,35 @@ export const NodeFormModal: React.FC<NodeFormModalProps> = ({
           <div>
             <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Battery Charge Level (%)</label>
             <Input type="number" step="0.5" {...register('batteryLevel')} placeholder="100.0" />
+          </div>
+
+          {/* Operational Status & Active Relays */}
+          <div>
+            <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Operational Status</label>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'ONLINE'}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value as SimulationNodeStatus)}
+                  options={[
+                    { label: 'Online', value: 'ONLINE' },
+                    { label: 'Active', value: 'ACTIVE' },
+                    { label: 'Offline', value: 'OFFLINE' },
+                    { label: 'Inactive', value: 'INACTIVE' },
+                    { label: 'Busy', value: 'BUSY' },
+                    { label: 'Sleeping', value: 'SLEEPING' },
+                    { label: 'Maintenance', value: 'MAINTENANCE' },
+                  ]}
+                />
+              )}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Simulated Relays / Connections</label>
+            <Input type="number" step="1" {...register('connections')} placeholder="10" />
           </div>
         </div>
 

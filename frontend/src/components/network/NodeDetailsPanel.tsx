@@ -31,6 +31,24 @@ export const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({
 }) => {
   if (!node) return null;
 
+  const getBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'ONLINE':
+      case 'ACTIVE':
+        return 'success';
+      case 'BUSY':
+        return 'accent';
+      case 'SLEEPING':
+        return 'primary';
+      case 'MAINTENANCE':
+        return 'warning';
+      case 'OFFLINE':
+      case 'INACTIVE':
+      default:
+        return 'danger';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full overflow-y-auto shadow-2xl p-6 text-slate-200 flex flex-col justify-between">
@@ -58,7 +76,7 @@ export const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({
           <div className="mt-4 flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-slate-400">Status:</span>
-              <Badge variant={node.status === 'ONLINE' ? 'success' : 'warning'} size="md">
+              <Badge variant={getBadgeVariant(node.status)} size="md">
                 {node.status}
               </Badge>
             </div>
@@ -138,7 +156,7 @@ export const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({
                 <span className="text-slate-400 flex items-center gap-1">
                   <Share2 className="w-3 h-3 text-purple-400" /> Simulated Connections:
                 </span>
-                <span className="text-purple-300 font-bold">{node.connections} active relays</span>
+                <span className="text-purple-300 font-bold">{node.connections ?? node.relationships?.length ?? 0} active relays</span>
               </div>
             </div>
 
