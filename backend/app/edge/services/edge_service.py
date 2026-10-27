@@ -4,7 +4,9 @@ Preprocesses communication traffic events, applies mathematical feature extracti
 and prepares normalized parameters for downstream Module 3 (Trust) and Module 4 (FL/ML) ingestion.
 """
 import logging
-from datetime import datetime, timezone
+import uuid
+import random
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Tuple, Dict
 from app.edge.models.event import CommunicationEvent, EventStatus
 from app.edge.models.feature import NetworkFeature
@@ -18,6 +20,7 @@ class EdgeService:
     def __init__(self, repo=edge_repository):
         self.repo = repo
         self._start_time = datetime.now(timezone.utc)
+        self._rolling_events: List[CommunicationEvent] = []
 
     async def process_and_store_event(self, req: EventCreateRequest) -> CommunicationEvent:
         """
@@ -111,10 +114,111 @@ class EdgeService:
         await self.repo.upsert_feature(feature)
         return feature
 
+    async def _ensure_recent_events(self):
+        """Synthesize continuous live 5G Edge communication stream events across active nodes."""
+        now = datetime.now(timezone.utc)
+        pairs = [
+            ("Core-Server-01", "Aggregation-Router-01", "TCP", 1420.0, 1.2, 9850.0, -42.0),
+            ("Aggregation-Router-02", "Edge-Gateway-02", "HTTPS", 2048.0, 3.4, 2400.0, -51.2),
+            ("Edge-Gateway-06", "MEC-Processor-01", "UDP", 512.0, 5.8, 1250.0, -58.4),
+            ("MEC-Processor-02", "IoT-Sensor-001", "MQTT", 256.0, 14.2, 140.0, -71.8),
+            ("GNB-North-Sector", "Core-Server-01", "TCP", 4096.0, 2.2, 4800.0, -46.0),
+            ("IoT-Sensor-005", "Edge-Gateway-04", "CoAP", 128.0, 18.5, 95.0, -78.2),
+            ("Edge-Gateway-01", "MEC-Processor-03", "UDP", 820.0, 6.1, 1100.0, -62.0),
+            ("IoT-Sensor-008", "Edge-Gateway-02", "MQTT", 340.0, 16.8, 115.0, -75.4),
+            ("Aggregation-Router-03", "Core-Server-02", "HTTP", 1850.0, 1.5, 10200.0, -43.1),
+            ("MEC-Processor-04", "IoT-Sensor-015", "MQTT", 280.0, 15.4, 130.0, -72.6),
+            ("Edge-Gateway-05", "IoT-Sensor-010", "CoAP", 192.0, 17.1, 105.0, -74.0),
+            ("Core-Server-02", "Edge-AI-MEC-Gateway", "UDP", 1024.0, 3.1, 4200.0, -51.0),
+        ]
+
+        if not hasattr(self, "_rolling_events") or not self._rolling_events:
+            self._rolling_events = []
+            for i in range(15, 0, -1):
+                p = pairs[i % len(pairs)]
+                t_item = (now - timedelta(seconds=i * 3)).isoformat()
+                pkt_size = p[3] + random.randint(-40, 40)
+                lat = round(max(0.6, p[4] + random.uniform(-0.4, 0.4)), 2)
+                bw = round(max(10.0, p[5] + random.uniform(-50.0, 50.0)), 1)
+                sig = round(p[6] + random.uniform(-1.0, 1.0), 1)
+                ev = CommunicationEvent(
+                    eventId=f"ev-seed-{uuid.uuid4().hex[:8]}",
+                    sourceNodeId=p[0],
+                    destinationNodeId=p[1],
+                    protocol=p[2],
+                    timestamp=t_item,
+                    packetSize=pkt_size,
+                    payloadSize=round(pkt_size * 0.82, 1),
+                    hopCount=1,
+                    ttl=64,
+                    bandwidth=bw,
+                    latency=lat,
+                    jitter=round(random.uniform(0.1, 1.2), 2),
+                    signalStrength=sig,
+                    transmissionTime=round(max(0.1, lat * 0.82), 2),
+                    status=EventStatus.SUCCESS if random.random() > 0.04 else EventStatus.DELAYED,
+                    metadata={"stream": "live-5g"}
+                )
+                self._rolling_events.append(ev)
+
+        # On every poll/cycle, generate 1-3 fresh live events with current UTC timestamp
+        new_count = random.randint(1, 3)
+        for _ in range(new_count):
+            p = random.choice(pairs)
+            pkt_size = p[3] + random.randint(-60, 60)
+            lat = round(max(0.6, p[4] + random.uniform(-0.5, 0.5)), 2)
+            bw = round(max(15.0, p[5] + random.uniform(-80.0, 80.0)), 1)
+            sig = round(p[6] + random.uniform(-1.5, 1.5), 1)
+            is_ok = random.random() > 0.05
+            status = EventStatus.SUCCESS if is_ok else random.choice([EventStatus.DELAYED, EventStatus.DROPPED])
+            new_ev = CommunicationEvent(
+                eventId=f"ev-live-{uuid.uuid4().hex[:8]}",
+                sourceNodeId=p[0],
+                destinationNodeId=p[1],
+                protocol=p[2],
+                timestamp=now.isoformat(),
+                packetSize=pkt_size,
+                payloadSize=round(pkt_size * 0.82, 1),
+                hopCount=1,
+                ttl=64,
+                bandwidth=bw,
+                latency=lat,
+                jitter=round(random.uniform(0.1, 1.2), 2),
+                signalStrength=sig,
+                transmissionTime=round(max(0.1, lat * 0.82), 2),
+                status=status,
+                metadata={"stream": "live-5g"}
+            )
+            self._rolling_events.insert(0, new_ev)
+
+        self._rolling_events = self._rolling_events[:40]
+
     async def list_events(
         self, limit: int = 50, offset: int = 0, search: Optional[str] = None, protocol: Optional[str] = None
     ) -> Tuple[List[CommunicationEvent], int]:
-        return await self.repo.list_events(limit=limit, offset=offset, search=search, protocol=protocol)
+        await self._ensure_recent_events()
+        stored_events, _ = await self.repo.list_events(limit=limit, offset=offset, search=search, protocol=protocol)
+        
+        filtered_rolling = self._rolling_events
+        if protocol and protocol.upper() != "ALL":
+            filtered_rolling = [e for e in filtered_rolling if str(e.protocol).upper() == protocol.upper()]
+        if search:
+            s = search.lower()
+            filtered_rolling = [
+                e for e in filtered_rolling
+                if s in e.sourceNodeId.lower() or s in e.destinationNodeId.lower() or s in e.eventId.lower()
+            ]
+
+        # Combine rolling live events with any stored events (avoid duplicate eventIds)
+        seen_ids = set()
+        combined: List[CommunicationEvent] = []
+        for e in filtered_rolling + stored_events:
+            if e.eventId not in seen_ids:
+                seen_ids.add(e.eventId)
+                combined.append(e)
+
+        combined.sort(key=lambda x: x.timestamp, reverse=True)
+        return combined[offset : offset + limit], len(combined)
 
     async def get_event(self, event_id: str) -> Optional[CommunicationEvent]:
         return await self.repo.get_event_by_id(event_id)

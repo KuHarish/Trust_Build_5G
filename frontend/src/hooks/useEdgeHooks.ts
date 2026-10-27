@@ -19,7 +19,8 @@ export function useEdgeStatistics() {
   return useQuery({
     queryKey: EDGE_QUERY_KEYS.statistics,
     queryFn: () => EdgeService.getStatistics(),
-    refetchInterval: 5000,
+    refetchInterval: 2500,
+    refetchIntervalInBackground: true,
   });
 }
 
@@ -27,7 +28,8 @@ export function useEdgeEvents(params?: EventFilterParams) {
   return useQuery({
     queryKey: EDGE_QUERY_KEYS.eventsList(params),
     queryFn: () => EdgeService.listEvents(params),
-    refetchInterval: 5000,
+    refetchInterval: 2500,
+    refetchIntervalInBackground: true,
   });
 }
 
