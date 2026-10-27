@@ -5,16 +5,13 @@ import {
   Activity,
   ShieldAlert,
   BarChart2,
-  Database,
   Search,
-  ArrowRight,
   Shield,
   Globe,
   RefreshCw,
   Zap,
   Play,
   Pause,
-  Clock,
   Check,
 } from 'lucide-react';
 import { trafficApi } from '@/api/endpoints';
@@ -112,7 +109,7 @@ export const Traffic: React.FC = () => {
   const lastUpdateRef = useRef<number>(Date.now());
 
   // 1. Fetch Traffic Logs with fast 2.5s polling
-  const { data: logsRes, isLoading: logsLoading, isError: logsError, refetch } = useQuery({
+  const { data: logsRes, refetch } = useQuery({
     queryKey: ['traffic-logs', selectedNode !== 'ALL' ? selectedNode : undefined],
     queryFn: () => trafficApi.getLogs(selectedNode !== 'ALL' ? { node_id: selectedNode } : undefined),
     refetchInterval: 2500,
