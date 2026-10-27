@@ -13,7 +13,7 @@ from app.trust.models.config import TrustConfiguration
 logger = logging.getLogger("trustchain.trust.calculation")
 
 class TrustCalculationService:
-    async def evaluate_node(self, node_id: str, b_score: float, h_score: float, c_score: float, metrics: Dict[str, Any]):
+    async def evaluate_node(self, node_id: str, b_score: float, h_score: float, c_score: float, metrics: Dict[str, Any], explicit_reason: str = None):
         """Calculates adaptive score, classifies delta, generates explanation, and commits."""
         config = await config_repository.get_active_config()
         profile = await trust_profile_repo.get_by_node_id(node_id)
@@ -48,7 +48,7 @@ class TrustCalculationService:
             change_status = "STABLE"
             
         # 4. Explanation Engine
-        reason = self._generate_explanation(profile, b_score, h_score, c_score, delta)
+        reason = explicit_reason or self._generate_explanation(profile, b_score, h_score, c_score, delta)
         
         # 5. Commit Profile
         profile.previousTrustScore = previous_score

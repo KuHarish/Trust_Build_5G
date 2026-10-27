@@ -122,7 +122,7 @@ class TrustProfileRepository:
         p_dict = profile.model_dump(by_alias=True)
         if collection is not None:
             try:
-                await collection.replace_one({"trustProfileId": profile.trustProfileId}, p_dict)
+                await collection.replace_one({"trustProfileId": profile.trustProfileId}, p_dict, upsert=True)
                 return profile
             except Exception as e:
                 logger.warning(f"MongoDB unavailable: {e}")
@@ -279,7 +279,7 @@ class SecurityComplianceRepository:
         c_dict = compliance.model_dump(by_alias=True)
         if collection is not None:
             try:
-                await collection.insert_one(c_dict)
+                await collection.replace_one({"nodeId": compliance.nodeId}, c_dict, upsert=True)
                 return compliance
             except Exception as e:
                 logger.warning(f"MongoDB unavailable: {e}")
