@@ -86,3 +86,4 @@ Thumbs.db
 *.onnx
 backend/models/*/*
 !backend/models/README.md
+backend/datasets/*
