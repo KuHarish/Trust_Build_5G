@@ -77,7 +77,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
-backend/datasets
 
 # Machine Learning Weights & Checkpoints
 *.pkl
